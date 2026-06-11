@@ -1,12 +1,4 @@
-// =============================================================================
-//  SSS_ScreenSpaceScatter.shader
-//  desc : Compute 不可用时的回退路径，外加合成 Pass。
-//         Pass 0 "SSSScatterFallback" : 与 compute 等价的 disc gather，写入 lighting RT
-//         Pass 1 "SSSComposite"       : 把散射结果加法叠加回相机颜色（Blend One One）
-//
-//  两个 Pass 都用 HDRP 全屏三角形(SV_VertexID)绘制，配合 CoreUtils.DrawFullScreen。
-//  与 compute 同样采用「uv→像素 + 整数 Load」，规避 RTHandle 缩放问题。
-// =============================================================================
+
 Shader "Hidden/ScreenSpaceScatter"
 {
     SubShader
@@ -129,7 +121,7 @@ Shader "Hidden/ScreenSpaceScatter"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             TEXTURE2D(_SSSAlbedo);
-            RW_TEXTURE2D_X(float4,_SSSScatterResult);
+            TEXTURE2D(_SSSScatterResult);
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;

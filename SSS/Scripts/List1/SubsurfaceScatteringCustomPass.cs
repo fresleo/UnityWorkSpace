@@ -101,9 +101,10 @@ namespace Garena.TA.SSS
             // Debug.Log("_diffuseRT.rt.dimension:"+_diffuseRT.rt.dimension);
             var hd = ctx.hdCamera;
             var cmd = ctx.cmd;
-            int w = hd.actualWidth;
-            int h = hd.actualHeight;
-            
+            int w = ctx.cameraDepthBuffer.rt.width;
+            int h = ctx.cameraDepthBuffer.rt.height;
+            // int w = hd.actualWidth;
+            // int h = hd.actualHeight;
 
             //动态贴图的设置
             ReallocIfNeeded(ref _diffuseRT, w, h, enableRandomWrite: true);

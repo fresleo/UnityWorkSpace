@@ -44,11 +44,15 @@ namespace Garena.TA.SSS
         {
         }
 
+        private bool showDebug = false;
+
         public override void OnInspectorGUI()
         {
             _styles ??= new Styles();
 
             serializedObject.Update();
+            showDebug = EditorGUILayout.Foldout(showDebug, "Debug Options", true);
+
             var asset = (DiffusionProfileParam)target;
 
             using (var cc = new EditorGUI.ChangeCheckScope())
@@ -56,12 +60,10 @@ namespace Garena.TA.SSS
                 EditorGUILayout.PropertyField(scatteringColorProp, _styles.ProfileScatteringColor);
                 EditorGUILayout.PropertyField(scatteringMultiplierProp, _styles.ScatteringMultiplier);
                 EditorGUILayout.PropertyField(maxRadiusProp, _styles.ProfileMaxRadius);
-
                 EditorGUILayout.PropertyField(kernelSampleCountProp, _styles.ProfileKernelSampleCount);
                 if (cc.changed)
                 {
                     _kernelNeedsUpdate = true;
-                    
                 }
             }
 
@@ -74,6 +76,13 @@ namespace Garena.TA.SSS
 
             if (asset.discPreviewTexture != null)
                 EditorUtility.SetDirty(asset.discPreviewTexture);
+            if (showDebug)
+            {
+                using (new EditorGUI.DisabledScope(true))
+                    EditorGUILayout.FloatField(_styles.hash, asset.hash);
+                using (new EditorGUI.DisabledScope(true))
+                    EditorGUILayout.FloatField(_styles.DefaultStyle("hash"), asset.hash);
+            }
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Generated Preview", EditorStyles.boldLabel);
@@ -86,9 +95,9 @@ namespace Garena.TA.SSS
                 ScaleMode.ScaleToFit, 1f);
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
-            
+
             DrawTexture2DPreview("Disc Kernel", asset.discKernelTex);
-            
+
             if (_kernelNeedsUpdate)
                 EditorGUILayout.HelpBox("Burley parameters changed. Click update to rebuild Disc Kernel textures.",
                     MessageType.Warning);
@@ -97,7 +106,6 @@ namespace Garena.TA.SSS
             {
                 RegenerateDiscKernel();
                 _kernelNeedsUpdate = false;
-              
             }
         }
 
@@ -144,6 +152,7 @@ namespace Garena.TA.SSS
                 AssetDatabase.RemoveObjectFromAsset(current);
                 GameObject.DestroyImmediate(current, true);
             }
+
             current = replacement;
             if (current == null)
                 return;
@@ -161,6 +170,7 @@ namespace Garena.TA.SSS
                 AssetDatabase.RemoveObjectFromAsset(current);
                 GameObject.DestroyImmediate(current, true);
             }
+
             current = replacement;
             if (current == null)
                 return;
@@ -189,22 +199,22 @@ namespace Garena.TA.SSS
         {
             var asset = (DiffusionProfileParam)target;
             asset.updateKernel();
-            
+
             BurleyParameters burleyParams = new BurleyParameters();
             burleyParams._maxRadius = asset.InputMaxRadius;
             burleyParams._scatteringColor = asset.scatteringColor.linear;
             burleyParams._scatteringMultiplier = asset.scatteringMultiplier;
-            
+
             Texture2D tempTexture = SSS_DiscSampling.GenerateDiscKernel(burleyParams, asset.InputDiscSampleCount);
 
-           
+
             ReplaceSubAssetTexture2D(asset, ref asset.discKernelTex, tempTexture, "DiscKernel");
 
-   
+
             EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
         }
-        
+
         private sealed class Styles
         {
             public readonly GUIContent ProfilePreview0 = new("Diffusion Profile Preview");
@@ -242,6 +252,9 @@ namespace Garena.TA.SSS
             public readonly GUIContent ProfileThicknessRemap = new("Thickness Remap (Min-Max)",
                 "Remaps the thickness parameter from [0, 1] to the desired range (in millimeters).");
 
+            public readonly GUIContent hash = new("hash",
+                "hash值");
+
             public readonly GUIContent ProfileWorldScale = new("世界单位1米", "世界的长度尺寸单位单位是米，也就是多少个单位对应shader中的1000毫米");
 
             public readonly GUIContent ProfileKernelSampleCount = new("核采样像素",
@@ -249,6 +262,11 @@ namespace Garena.TA.SSS
 
             public readonly GUIStyle CenteredMiniBoldLabel = new(GUI.skin.label);
 
+            public GUIContent DefaultStyle([System.Runtime.CompilerServices.CallerMemberName] string name = null)
+            {
+                GUIContent temp = new(name, name);
+                return temp;
+            }
             // public readonly GUIContent SubsurfaceScatteringLabel = new("Subsurface Scattering only");
             //
             // public readonly GUIContent TransmissionLabel = new("Transmission only");
