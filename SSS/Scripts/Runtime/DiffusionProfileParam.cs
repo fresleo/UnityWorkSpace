@@ -26,15 +26,19 @@ namespace Garena.TA.SSS
         private int importanceCdfResolution = 1024;
     
         [HideInInspector]
-        public int discSampleCount = 32;
-        public float discKernelMaxRadius = 15f;
-        public float inputMaxRadius = 1f;
-        public Vector4 shape =  Vector4.zero;
-        public float d;
-        
+        [SerializeField]
+        public int InputDiscSampleCount = 32;
+        [SerializeField]
+        public float InputMaxRadius = 15f;
+        [SerializeField]
+        public Vector4 InputShape =  Vector4.zero;
+        [SerializeField]
+        public float Input_d;
+        [SerializeField] 
+        public float InputWroldScale;
         [Header("Generated Textures")]
         public Texture2D discKernelTex;
-        public Texture2D discPreviewTexture;
+        public RenderTexture discPreviewTexture;
 
         
         private static float ShapeParam(float a)
@@ -49,15 +53,17 @@ namespace Garena.TA.SSS
         }
         public void updateKernel()
         {
-            discSampleCount = kernelSampleCount;
-            inputMaxRadius = maxRadius;
-            Vector4 s = scatteringColor * scatteringMultiplier;
-            d = GetMeanFreePath(maxRadius);
-            shape = new Vector4(
+            InputDiscSampleCount = kernelSampleCount;
+            InputMaxRadius = maxRadius;
+            Color LinearColor = scatteringColor.linear;
+            Vector4 s = LinearColor * scatteringMultiplier;
+            Input_d = GetMeanFreePath(maxRadius);
+            InputWroldScale = worldScale;
+            InputShape = new Vector4(
                 ShapeParam(s.x),
                 ShapeParam(s.y),
                 ShapeParam(s.z),
-                d
+                Input_d
             );
         }
 

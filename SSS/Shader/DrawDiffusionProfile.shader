@@ -2,10 +2,7 @@ Shader "Hidden/DrawDiffusionProfile"
 {
     SubShader
     {
-        Tags
-        {
-            "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline"
-        }
+        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         Pass
         {
             Cull   Off
@@ -20,9 +17,16 @@ Shader "Hidden/DrawDiffusionProfile"
 
             #pragma vertex Vert
             #pragma fragment Frag
-            
+
+            //-------------------------------------------------------------------------------------
+            // Include
+            //-------------------------------------------------------------------------------------
+
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/DiffusionProfile/DiffusionProfile.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/EditorShaderVariables.hlsl"
+
             //-------------------------------------------------------------------------------------
             // Inputs & outputs
             //-------------------------------------------------------------------------------------
@@ -32,40 +36,31 @@ Shader "Hidden/DrawDiffusionProfile"
             //-------------------------------------------------------------------------------------
             // Implementation
             //-------------------------------------------------------------------------------------
-            
+
             struct Attributes
             {
-                float3 vertex     : POSITION;
-                float2 texcoord   : TEXCOORD0;
+                float3 vertex   : POSITION;
+                float2 texcoord : TEXCOORD0;
             };
 
             struct Varyings
             {
-                float4 vertex      : SV_POSITION;
-                float2 texcoord    : TEXCOORD0;
+                float4 vertex   : SV_POSITION;
+                float2 texcoord : TEXCOORD0;
             };
-
-            // Performs sampling of the Normalized Burley diffusion profile in polar coordinates.
-            // The result must be multiplied by the albedo.
-            float3 EvalBurleyDiffusionProfile(float r, float3 S)
-            {
-                float3 exp_13 = exp2(((LOG2_E * (-1.0/3.0)) * r) * S); // Exp[-S * r / 3]
-                float3 expSum = exp_13 * (1 + exp_13 * exp_13);        // Exp[-S * r / 3] + Exp[-S * r]
-
-                return (S * rcp(8 * PI)) * expSum; // S / (8 * Pi) * (Exp[-S * r / 3] + Exp[-S * r])
-            }
 
             Varyings Vert(Attributes input)
             {
                 Varyings output;
                 // We still use the legacy matrices in the editor GUI
-                output.vertex   = mul(_ViewProjMatrix, float4(input.vertex, 1));
+                output.vertex   = mul(unity_MatrixVP, float4(input.vertex, 1));
                 output.texcoord = input.texcoord.xy;
                 return output;
             }
-            
+
             float4 Frag(Varyings input) : SV_Target
             {
+
                 // Profile display does not use premultiplied S.
                 float  r = _MaxRadius * 0.5 * length(input.texcoord - 0.5); // (-0.25 * R, 0.25 * R)
                 float3 S = _ShapeParam.rgb;
@@ -79,4 +74,5 @@ Shader "Hidden/DrawDiffusionProfile"
             ENDHLSL
         }
     }
+    Fallback Off
 }

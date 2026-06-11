@@ -1,6 +1,7 @@
 using System;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 
 namespace Garena.TA.SSS
 {
@@ -16,25 +17,31 @@ namespace Garena.TA.SSS
         private SerializedProperty scatteringColorProp;
         private SerializedProperty scatteringMultiplierProp;
 
+        private SerializedProperty maxRadiusProp;
+        private SerializedProperty worldScaleProp;
+
+        private SerializedProperty kernelSampleCountProp;
+
         //==========================Editor properties ====================
         private static Styles _styles;
-        private Vector4 ShapeParam = new Vector4();
 
         private void OnEnable()
         {
             _styles ??= new Styles();
             scatteringColorProp = serializedObject.FindProperty("scatteringColor");
             scatteringMultiplierProp = serializedObject.FindProperty("scatteringMultiplier");
+            maxRadiusProp = serializedObject.FindProperty("maxRadius");
+            worldScaleProp = serializedObject.FindProperty("worldScale");
+            kernelSampleCountProp = serializedObject.FindProperty("kernelSampleCount");
             GetOrCreateDiscPreviewMaterial();
+            // Ensure preview is generated immediately on selection
+            DiscPreviewByShader((DiffusionProfileParam)target);
+            UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
+            Debug.Log("DiffusionProfileEditor enabled and disc preview material created.");
         }
 
         private void OnDisable()
         {
-            if (_discPreviewMaterial != null)
-            {
-                DestroyImmediate(_discPreviewMaterial);
-                _discPreviewMaterial = null;
-            }
         }
 
         public override void OnInspectorGUI()
@@ -44,49 +51,53 @@ namespace Garena.TA.SSS
             serializedObject.Update();
             var asset = (DiffusionProfileParam)target;
 
-
             using (var cc = new EditorGUI.ChangeCheckScope())
             {
                 EditorGUILayout.PropertyField(scatteringColorProp, _styles.ProfileScatteringColor);
                 EditorGUILayout.PropertyField(scatteringMultiplierProp, _styles.ScatteringMultiplier);
+                EditorGUILayout.PropertyField(maxRadiusProp, _styles.ProfileMaxRadius);
+
+                EditorGUILayout.PropertyField(kernelSampleCountProp, _styles.ProfileKernelSampleCount);
                 if (cc.changed)
                 {
-                    asset.updateKernel();
-                    Debug.Log("ShapeParam: " + asset.shape);
-                    Debug.Log("_MaxRadius: " + asset.inputMaxRadius);
-                    GetOrCreateDiscPreviewMaterial().SetVector("_ShapeParam", asset.shape);
-                    GetOrCreateDiscPreviewMaterial().SetFloat("_MaxRadius", asset.inputMaxRadius);
+                    _kernelNeedsUpdate = true;
+                    
                 }
             }
 
-            
-
+            EditorGUILayout.PropertyField(worldScaleProp, _styles.ProfileWorldScale);
             serializedObject.ApplyModifiedProperties();
 
+            asset.updateKernel();
 
             DiscPreviewByShader(asset);
 
-            _kernelNeedsUpdate = true;
-            EditorUtility.SetDirty(asset);
             if (asset.discPreviewTexture != null)
                 EditorUtility.SetDirty(asset.discPreviewTexture);
 
-
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Generated Preview", EditorStyles.boldLabel);
-            DrawTexturePreview("Disc Kernel", asset.discKernelTex);
-            DrawTexturePreview("Disc Preview (Realtime)", asset.discPreviewTexture);
-
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Disc Kernel Texture", EditorStyles.boldLabel);
-
+            GetOrCreateDiscPreviewMaterial().SetFloat("_MaxRadius", asset.InputMaxRadius);
+            GetOrCreateDiscPreviewMaterial().SetVector("_ShapeParam", asset.InputShape / asset.InputShape.w);
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Space(4);
+            Rect r = GUILayoutUtility.GetRect(DiscPreviewSize, DiscPreviewSize, GUILayout.ExpandWidth(false));
+            EditorGUI.DrawPreviewTexture(r, asset.discPreviewTexture, GetOrCreateDiscPreviewMaterial(),
+                ScaleMode.ScaleToFit, 1f);
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+            
+            DrawTexture2DPreview("Disc Kernel", asset.discKernelTex);
+            
             if (_kernelNeedsUpdate)
                 EditorGUILayout.HelpBox("Burley parameters changed. Click update to rebuild Disc Kernel textures.",
                     MessageType.Warning);
 
             if (GUILayout.Button("Update Disc Kernel Texture"))
             {
+                RegenerateDiscKernel();
                 _kernelNeedsUpdate = false;
+              
             }
         }
 
@@ -103,36 +114,11 @@ namespace Garena.TA.SSS
                 return;
             }
 
-            material.SetVector("_ShapeParam", BuildShapeParamFromBurley(asset));
-            material.SetFloat("_MaxRadius", Mathf.Max(1e-4f, asset.maxRadius));
-
-            if (asset.discPreviewTexture == null
-                || asset.discPreviewTexture.width != DiscPreviewSize
-                || asset.discPreviewTexture.height != DiscPreviewSize
-                || asset.discPreviewTexture.format != TextureFormat.RGBAFloat)
+            if (asset.discPreviewTexture == null)
             {
-                var newPreview = new Texture2D(DiscPreviewSize, DiscPreviewSize, TextureFormat.RGBAFloat, false, true)
-                {
-                    wrapMode = TextureWrapMode.Clamp,
-                    filterMode = FilterMode.Bilinear
-                };
+                var newPreview = new RenderTexture(DiscPreviewSize, DiscPreviewSize, 0,
+                    GraphicsFormat.R16G16B16A16_SFloat);
                 ReplaceSubAssetTexture(asset, ref asset.discPreviewTexture, newPreview, "DiscPreview");
-            }
-
-            var rt = RenderTexture.GetTemporary(DiscPreviewSize, DiscPreviewSize, 0, RenderTextureFormat.ARGBFloat,
-                RenderTextureReadWrite.Linear);
-            var previous = RenderTexture.active;
-            try
-            {
-                Graphics.Blit(Texture2D.blackTexture, rt, material);
-                RenderTexture.active = rt;
-                asset.discPreviewTexture.ReadPixels(new Rect(0, 0, DiscPreviewSize, DiscPreviewSize), 0, 0);
-                asset.discPreviewTexture.Apply(false, false);
-            }
-            finally
-            {
-                RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(rt);
             }
         }
 
@@ -149,36 +135,15 @@ namespace Garena.TA.SSS
             return _discPreviewMaterial;
         }
 
-        private static Vector4 BuildShapeParamFromBurley(DiffusionProfileParam asset)
-        {
-            float aR = Mathf.Max(0f, asset.scatteringColor.r * asset.scatteringMultiplier);
-            float aG = Mathf.Max(0f, asset.scatteringColor.g * asset.scatteringMultiplier);
-            float aB = Mathf.Max(0f, asset.scatteringColor.b * asset.scatteringMultiplier);
 
-            float sR = ComputeShapeParam(aR);
-            float sG = ComputeShapeParam(aG);
-            float sB = ComputeShapeParam(aB);
-
-            // Shader squares _ShapeParam before EvalBurleyDiffusionProfile.
-            return new Vector4(Mathf.Sqrt(Mathf.Max(sR, 0f)), Mathf.Sqrt(Mathf.Max(sG, 0f)),
-                Mathf.Sqrt(Mathf.Max(sB, 0f)), 0f);
-        }
-
-        private static float ComputeShapeParam(float albedo)
-        {
-            float diff = albedo - 0.8f;
-            return 1.85f - albedo + 7.0f * diff * diff * diff;
-        }
-
-        private static void ReplaceSubAssetTexture(DiffusionProfileParam asset, ref Texture2D current,
-            Texture2D replacement, string name)
+        private static void ReplaceSubAssetTexture(DiffusionProfileParam asset, ref RenderTexture current,
+            RenderTexture replacement, string name)
         {
             if (current != null)
             {
                 AssetDatabase.RemoveObjectFromAsset(current);
                 GameObject.DestroyImmediate(current, true);
             }
-
             current = replacement;
             if (current == null)
                 return;
@@ -188,7 +153,24 @@ namespace Garena.TA.SSS
                 AssetDatabase.AddObjectToAsset(current, asset);
         }
 
-        private static void DrawTexturePreview(string label, Texture texture)
+        private static void ReplaceSubAssetTexture2D(DiffusionProfileParam asset, ref Texture2D current,
+            Texture2D replacement, string name)
+        {
+            if (current != null)
+            {
+                AssetDatabase.RemoveObjectFromAsset(current);
+                GameObject.DestroyImmediate(current, true);
+            }
+            current = replacement;
+            if (current == null)
+                return;
+
+            current.name = name;
+            if (AssetDatabase.Contains(asset))
+                AssetDatabase.AddObjectToAsset(current, asset);
+        }
+
+        private void DrawTexture2DPreview(string label, Texture texture)
         {
             EditorGUILayout.LabelField(label, EditorStyles.miniBoldLabel);
 
@@ -203,6 +185,26 @@ namespace Garena.TA.SSS
             EditorGUI.DrawPreviewTexture(rect, texture);
         }
 
+        private void RegenerateDiscKernel()
+        {
+            var asset = (DiffusionProfileParam)target;
+            asset.updateKernel();
+            
+            BurleyParameters burleyParams = new BurleyParameters();
+            burleyParams._maxRadius = asset.InputMaxRadius;
+            burleyParams._scatteringColor = asset.scatteringColor.linear;
+            burleyParams._scatteringMultiplier = asset.scatteringMultiplier;
+            
+            Texture2D tempTexture = SSS_DiscSampling.GenerateDiscKernel(burleyParams, asset.InputDiscSampleCount);
+
+           
+            ReplaceSubAssetTexture2D(asset, ref asset.discKernelTex, tempTexture, "DiscKernel");
+
+   
+            EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssets();
+        }
+        
         private sealed class Styles
         {
             public readonly GUIContent ProfilePreview0 = new("Diffusion Profile Preview");
@@ -212,9 +214,6 @@ namespace Garena.TA.SSS
 
             public readonly GUIContent ProfilePreview2 =
                 new("The distance to the boundary of the image corresponds to the Max Radius.");
-
-            public readonly GUIContent ProfilePreview3 =
-                new("Note that the intensity of pixels around the center may be clipped.");
 
             public readonly GUIContent TransmittancePreview0 = new("Transmittance Preview");
 
@@ -227,14 +226,14 @@ namespace Garena.TA.SSS
             public readonly GUIContent ProfileScatteringColor = new("散射颜色",
                 "确定散射的shape，用于算出哪种颜色的波被散射出去");
 
-            public readonly GUIContent ScatteringMultiplier = new("颜色乘量",
+            public readonly GUIContent ScatteringMultiplier = new("散射强度",
                 "乘以颜色，表示物体的散射吸收率");
 
             public readonly GUIContent ProfileTransmissionTint = new("Transmission tint",
                 "Color which tints transmitted light. Alpha is ignored.");
 
-            public readonly GUIContent ProfileMaxRadius = new("Max Radius",
-                "The maximum radius of the effect you define in Scattering Color and Multiplier.\nWhen the world scale is 1, this value is in millimeters.");
+            public readonly GUIContent ProfileMaxRadius = new("散射径长",
+                "光线从表面进入后，散射的弦长，以毫米为单位。这个值越大，散射越明显，物体看起来越厚重。");
 
 
             public readonly GUIContent ProfileMinMaxThickness = new("Thickness Remap Values (Min-Max)",
@@ -243,10 +242,10 @@ namespace Garena.TA.SSS
             public readonly GUIContent ProfileThicknessRemap = new("Thickness Remap (Min-Max)",
                 "Remaps the thickness parameter from [0, 1] to the desired range (in millimeters).");
 
-            public readonly GUIContent ProfileWorldScale = new("World Scale", "Size of the world unit in meters.");
+            public readonly GUIContent ProfileWorldScale = new("世界单位1米", "世界的长度尺寸单位单位是米，也就是多少个单位对应shader中的1000毫米");
 
-            public readonly GUIContent ProfileIor = new("Index of Refraction",
-                "Select the index of refraction for this Diffusion Profile. For reference, skin is 1.4 and most materials are between 1.3 and 1.5.");
+            public readonly GUIContent ProfileKernelSampleCount = new("核采样像素",
+                "怎样计算光线进入物体后的采样cdf，越大越精确，但计算越慢。");
 
             public readonly GUIStyle CenteredMiniBoldLabel = new(GUI.skin.label);
 

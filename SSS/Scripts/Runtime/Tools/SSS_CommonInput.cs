@@ -29,6 +29,7 @@ namespace Garena.TA.SSS
         public float _maxRadius = 5.0f;   // 截断半径(mm)，决定 disc/preview 范围,必须和shader端保持一致
         public float _indexOfRefraction = 1.38f;
 
+        //get D
         public Vector3 GetMeanFreePath()
         {
             float ell = _maxRadius / 3.0f;

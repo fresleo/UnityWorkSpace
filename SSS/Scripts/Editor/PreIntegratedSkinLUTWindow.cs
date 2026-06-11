@@ -19,19 +19,13 @@ namespace Garena.TA.SSS
 
         //预积分采样数量
         [SerializeField] private int _integrationSamples = 360;
-        //是否自动更新
-
         //是否映射到UV空间
         [SerializeField] private bool _remapNdotL = true; // [-1,1] → UV[0,1]
-
         [SerializeField] private float _indexOfRefraction = 1.4f;
-
         //输出格式
         [SerializeField] private OutputFormat _outputFormat = OutputFormat.PNG;
-
         //输出路径
         [SerializeField] private string _outputPath = "Assets/SSS_LUT.png";
-
         SSS_PreIntegrated PreIntegrated = new SSS_PreIntegrated();
 
 
@@ -43,8 +37,7 @@ namespace Garena.TA.SSS
         private int _selectedPaperPreset = 0; // 默认 Apple
 
         private string _multiLutBasePath = "Assets/SSS/SSS_Output";
-        [SerializeField] private float _resolveWorldScaleOverride = 0f;
-        [SerializeField] private float _resolveFilterRadiusOverride = 0f;
+        [SerializeField] private float _WorldScale = 0f;
         [SerializeField] private int _discImportanceCdfResolution = 1024;
         [SerializeField] private string _resolveParamsAssetPath = "Assets/SSS/SSSResolveProfileParams.asset";
         [FormerlySerializedAs("_resolveParamsAsset")] [SerializeField] private DiffusionProfileParam resolveParam;
@@ -58,7 +51,7 @@ namespace Garena.TA.SSS
 
         // ---------- Runtime ----------
         private Texture2D _lutTexture;
-        private Texture2D _discPreviewTexture;
+        private RenderTexture _discPreviewTexture;
 
         private Texture2D _discKernelTex; // GenerateDiscKernel 产出的 N×1 数据
         private Texture2D _discKernelPreviewTex; // 可视化预览图
@@ -141,7 +134,32 @@ namespace Garena.TA.SSS
 
         private void RegeneratePreviews()
         {
-            PreIntegrated.RegenerateDiscPreview(ref _discPreviewTexture, _discPreviewSize, _previewExposure);
+            // SSS_PreIntegrated currently generates a Texture2D preview. Generate it then blit into a RenderTexture for runtime use.
+            Texture2D tempPreview = null;
+            PreIntegrated.RegenerateDiscPreview(ref tempPreview, _discPreviewSize, _previewExposure);
+
+            if (tempPreview != null)
+            {
+                if (_discPreviewTexture == null || _discPreviewTexture.width != tempPreview.width || _discPreviewTexture.height != tempPreview.height)
+                {
+                    if (_discPreviewTexture != null) Object.DestroyImmediate(_discPreviewTexture);
+                    _discPreviewTexture = new RenderTexture(tempPreview.width, tempPreview.height, 0, RenderTextureFormat.ARGBFloat)
+                    {
+                        name = "DiscPreview_RT",
+                        wrapMode = TextureWrapMode.Clamp,
+                        filterMode = FilterMode.Bilinear,
+                        useMipMap = false,
+                        autoGenerateMips = false
+                    };
+                }
+
+                var prev = RenderTexture.active;
+                Graphics.Blit(tempPreview, _discPreviewTexture);
+                RenderTexture.active = prev;
+
+                Object.DestroyImmediate(tempPreview);
+            }
+
             // PreIntegrated.RegenerateCurvePreview(ref _curvePreviewTexture, _discPreviewSize, _previewExposure, _previewLogScale);
             Repaint();
         }
@@ -208,10 +226,27 @@ namespace Garena.TA.SSS
             {
                 if (GUILayout.Button("保存衰减图到项目文件", GUILayout.Height(28)))
                 {
-                    bool result = SSS_ImageExportTools.SaveToAsset(_outputFormat, ref _discPreviewTexture, _outputPath);
-                    if (!result)
-                        PreIntegrated.RegenerateDiscPreview(ref _discPreviewTexture, _discPreviewSize,
-                            _previewExposure);
+                    // Save RenderTexture: read back to Texture2D then call SaveToAsset
+                    bool result = false;
+                    if (_discPreviewTexture != null)
+                    {
+                        var prev = RenderTexture.active;
+                        RenderTexture.active = _discPreviewTexture;
+                        var temp = new Texture2D(_discPreviewTexture.width, _discPreviewTexture.height, TextureFormat.RGBAFloat, false, true);
+                        temp.ReadPixels(new Rect(0, 0, _discPreviewTexture.width, _discPreviewTexture.height), 0, 0, false);
+                        temp.Apply(false, false);
+                        RenderTexture.active = prev;
+
+                        result = SSS_ImageExportTools.SaveToAsset(_outputFormat, ref temp, _outputPath);
+                        if (!result)
+                        {
+                            PreIntegrated.RegenerateDiscPreview(ref temp, _discPreviewSize, _previewExposure);
+                            // update display RT from regenerated temp
+                            if (_discPreviewTexture == null) _discPreviewTexture = new RenderTexture(temp.width, temp.height, 0, RenderTextureFormat.ARGBFloat);
+                            Graphics.Blit(temp, _discPreviewTexture);
+                        }
+                        Object.DestroyImmediate(temp);
+                    }
                 }
 
                 if (GUILayout.Button("保存预积分图到项目文件", GUILayout.Height(28)))
@@ -418,24 +453,21 @@ namespace Garena.TA.SSS
 
             EditorGUILayout.LabelField("Burley Parameters", EditorStyles.miniBoldLabel);
             EditorGUI.BeginChangeCheck();
-            PreIntegrated._burleyParameters._scatteringColor = EditorGUILayout.ColorField("Scattering Color",
+            PreIntegrated._burleyParameters._scatteringColor = EditorGUILayout.ColorField("散射颜色",
                 PreIntegrated._burleyParameters._scatteringColor);
-            PreIntegrated._burleyParameters._scatteringMultiplier = EditorGUILayout.Slider("Scattering Multiplier",
+            PreIntegrated._burleyParameters._scatteringMultiplier = EditorGUILayout.Slider("散射强度乘数",
                 PreIntegrated._burleyParameters._scatteringMultiplier, 0f, 3f);
-            PreIntegrated._burleyParameters._maxRadius = EditorGUILayout.Slider("Max Radius (mm)",
+            PreIntegrated._burleyParameters._maxRadius = EditorGUILayout.Slider("散射距离 (mm)",
                 PreIntegrated._burleyParameters._maxRadius, 0.1f, 20f);
             PreIntegrated._burleyParameters._indexOfRefraction = EditorGUILayout.Slider("Index Of Refraction",
                 PreIntegrated._burleyParameters._indexOfRefraction, 1.0f, 2.0f);
             if (EditorGUI.EndChangeCheck())
                 MarkAllDirty();
 
-            _resolveWorldScaleOverride = EditorGUILayout.FloatField(
-                new GUIContent("World Scale Override", "<=0 则使用 profile.worldScale"),
-                _resolveWorldScaleOverride);
-
-            _resolveFilterRadiusOverride = EditorGUILayout.FloatField(
-                new GUIContent("Filter Radius Override (mm)", "<=0 则按 scatteringDistance*factor/worldScale 估算"),
-                _resolveFilterRadiusOverride);
+            _WorldScale = EditorGUILayout.FloatField(
+                new GUIContent("World Scale(世界单位)", "<=0 则使用 profile.worldScale"),
+                _WorldScale);
+            
 
             // _resolveFilterRadiusFactor = EditorGUILayout.FloatField(
             //     new GUIContent("Filter Radius Factor", "估算公式中的系数"),
@@ -450,20 +482,17 @@ namespace Garena.TA.SSS
                 "  • _discKernelTex 与 _discPreviewTexture 预览纹理",
                 MessageType.Info);
 
-            if (GUILayout.Button("导出 ResolveProfileParams Asset", GUILayout.Height(24)))
+            if (GUILayout.Button("导出 DiffusionProfileParams Asset", GUILayout.Height(24)))
             {
                 if (_discKernelTex == null || _discKernelPreviewTex == null)
                     RegenerateDiscKernelAndPreview();
 
                 bool ok = SSS_DiscSampling.SaveResolveProfileParamsAsset(
                     PreIntegrated._burleyParameters,
-                    1f,
-                    _resolveWorldScaleOverride,
-                    _resolveFilterRadiusOverride,
+                    1.0f,
                     _discKernelTex,
                     _discPreviewTexture,
                     _discSampleCount,
-                    _discImportanceCdfResolution,
                     PreIntegrated.GetEffectiveMaxRadius(),
                     _resolveParamsAssetPath);
 
@@ -489,9 +518,9 @@ namespace Garena.TA.SSS
             PreIntegrated._burleyParameters._indexOfRefraction = asset.indexOfRefraction;
 
             _indexOfRefraction = asset.indexOfRefraction;
-            _resolveWorldScaleOverride = asset.worldScale;
+            _WorldScale = asset.worldScale;
 
-            _discSampleCount = asset.discSampleCount;
+            _discSampleCount = asset.kernelSampleCount;
 
             _discKernelTex = asset.discKernelTex;
             _discPreviewTexture = asset.discPreviewTexture;
@@ -499,7 +528,7 @@ namespace Garena.TA.SSS
 
             SSS_DiscSampling.RegenerateKernelPreview(
                 _discKernelTex, ref _discKernelPreviewTex,
-                _discKernelPreviewSize, asset.discKernelMaxRadius);
+                _discKernelPreviewSize, PreIntegrated._burleyParameters._maxRadius);
             
 
             string assetPath = AssetDatabase.GetAssetPath(asset);
@@ -513,12 +542,9 @@ namespace Garena.TA.SSS
         private void RegenerateDiscKernelAndPreview()
         {
             float maxR = PreIntegrated.GetEffectiveMaxRadius();
-
-
             // 生成采样表（运行时数据）
             if (_discKernelTex != null) DestroyImmediate(_discKernelTex);
-            _discKernelTex = SSS_DiscSampling.GenerateDiscKernel(PreIntegrated._burleyParameters, _discSampleCount,
-                maxR, _discImportanceCdfResolution);
+            _discKernelTex = SSS_DiscSampling.GenerateDiscKernel(PreIntegrated._burleyParameters, _discSampleCount, _discImportanceCdfResolution);
 
             // 生成可视化预览（仅编辑器显示）
             SSS_DiscSampling.RegenerateKernelPreview(

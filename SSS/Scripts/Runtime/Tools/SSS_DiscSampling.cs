@@ -22,14 +22,13 @@ namespace Garena.TA.SSS
         /// </summary>
         /// <param name="burleyParameters">Burley 采样参数</param>
         /// <param name="sampleCount">采样点数）</param>
-        /// <param name="maxRadius">采样圆盘最大半径 (mm)</param>
         /// <param name="importanceCdfResolution">构建逆 CDF 的精度，采样时累计分布的精度</param>
         public static Texture2D GenerateDiscKernel(
             BurleyParameters burleyParameters,
             int sampleCount,
-            float maxRadius,
             int importanceCdfResolution = 1024)
-        {   
+        {
+            float maxRadius = burleyParameters._maxRadius;
             if (burleyParameters == null)
             {
                 Debug.LogError("[SSS Disc] BurleyParameters 为空");
@@ -39,23 +38,23 @@ namespace Garena.TA.SSS
             // 2D 圆盘上的面积权重是 R(r)·r（极坐标面积元 r·dr·dθ）
             int M = Mathf.Max(64, importanceCdfResolution);
             var cdf = new float[M + 1];
-            cdf[0] = 0f;//因为从采样区间的最左端开始采样
+            cdf[0] = 0f; //因为从采样区间的最左端开始采样
 
             //这里的maxRadius为采样圆盘的最大半径，如果对应shader中，实际采样的弦长不会大于这个半径
             float dr = maxRadius / M;
 
             for (int i = 0; i < M; i++)
             {
-                float r = (i + 0.5f) * dr;//采样中间点
-                Vector3 R = EvaluateBurley(burleyParameters, r);//获取该半径下的衰减值
-                float lum = (R.x + R.y + R.z) / 3f;     // 平均亮度
-                float pdfUnnorm = Mathf.Max(lum * r, 0f);//防止亮度为负值：打个比方，光找到物体上，没有任何光子会减掉能量，所以衰减值不应该为负数
+                float r = (i + 0.5f) * dr; //采样中间点
+                Vector3 R = EvaluateBurley(burleyParameters, r); //获取该半径下的衰减值
+                float lum = (R.x + R.y + R.z) / 3f; // 平均亮度
+                float pdfUnnorm = Mathf.Max(lum * r, 0f); //防止亮度为负值：打个比方，光找到物体上，没有任何光子会减掉能量，所以衰减值不应该为负数
                 cdf[i + 1] = cdf[i] + pdfUnnorm * dr;
             }
 
-            float total = cdf[M];//这个点是采样区间的最右端，理论上是能量的总和，也就是1，因为Burley返回的衰减值已经是归一化的
-            if (total < 1e-12f) total = 1f;//如果衰减值过小，说明几乎没有光子会到达这个半径，直接把总量设为1，避免后续除以total时数值不稳定
-            for (int i = 0; i <= M; i++) cdf[i] /= total;   // 归一化到 [0,1]，反应从0到r的累计能量占比（CDF）
+            float total = cdf[M]; //这个点是采样区间的最右端，理论上是能量的总和，也就是1，因为Burley返回的衰减值已经是归一化的
+            if (total < 1e-12f) total = 1f; //如果衰减值过小，说明几乎没有光子会到达这个半径，直接把总量设为1，避免后续除以total时数值不稳定
+            for (int i = 0; i <= M; i++) cdf[i] /= total; // 归一化到 [0,1]，反应从0到r的累计能量占比（CDF）
 
             // ---------- 2. 逆 CDF 重要性采样 N 个半径 ----------
             var radii = new float[sampleCount];
@@ -77,7 +76,7 @@ namespace Garena.TA.SSS
                 // 重要性采样的 pdf(r) ∝ lum(r)·r / total，权重 = R / pdf
                 //  平均亮度 
                 float lum = (R.x + R.y + R.z) / 3f;
-                float pdf = Mathf.Max(lum * r / total, 1e-8f);//防止pdf过小导致权重过大
+                float pdf = Mathf.Max(lum * r / total, 1e-8f); //防止pdf过小导致权重过大
 
                 Vector3 w = new Vector3(R.x / pdf, R.y / pdf, R.z / pdf);
                 weights[s] = w;
@@ -97,13 +96,13 @@ namespace Garena.TA.SSS
             var tex = new Texture2D(sampleCount, 1, TextureFormat.RGBAFloat, false, true)
             {
                 wrapMode = TextureWrapMode.Clamp,
-                filterMode = FilterMode.Point,   // 采样表必须 Point，禁止插值
+                filterMode = FilterMode.Point, // 采样表必须 Point，禁止插值
                 name = "BurleyDiscKernel_" + maxRadius.ToString("F1") + "mm_" + sampleCount + "samples",
             };
 
             var pixels = new Color[sampleCount];
             for (int s = 0; s < sampleCount; s++)
-                pixels[s] = new Color(weights[s].x, weights[s].y, weights[s].z, radii[s]);//不是被“归一化”为 [0,1]
+                pixels[s] = new Color(weights[s].x, weights[s].y, weights[s].z, radii[s]); //不是被“归一化”为 [0,1]
 
             tex.SetPixels(pixels);
             tex.Apply(false, false);
@@ -151,6 +150,7 @@ namespace Garena.TA.SSS
                 if (cdf[mid] < xi) lo = mid + 1;
                 else hi = mid;
             }
+
             int idx = Mathf.Clamp(lo - 1, 0, M - 1);
 
             float c0 = cdf[idx], c1 = cdf[idx + 1];
@@ -170,12 +170,14 @@ namespace Garena.TA.SSS
                 Debug.LogError("[SSS Disc] disc kernel 为空");
                 return false;
             }
+
             // disc kernel 必须无损浮点，强制 EXR 或 Asset，PNG 会丢精度
             if (format == OutputFormat.PNG)
             {
                 Debug.LogWarning("[SSS Disc] disc kernel 含 HDR 权重和半径，PNG 会丢精度，已强制改用 EXR。");
                 format = OutputFormat.EXR;
             }
+
             return SSS_ImageExportTools.SaveToAsset(format, ref discKernel, path);
         }
 
@@ -185,12 +187,9 @@ namespace Garena.TA.SSS
         public static bool SaveResolveProfileParamsAsset(
             BurleyParameters burleyParameters,
             float worldScale,
-            float worldScaleOverride,
-            float filterRadiusOverride,
             Texture2D discKernelTex,
-            Texture2D discPreviewTexture,
+            RenderTexture discPreviewTexture, 
             int discSampleCount,
-            int importanceCdfResolution,
             float discKernelMaxRadius,
             string path)
         {
@@ -226,9 +225,9 @@ namespace Garena.TA.SSS
             asset.scatteringMultiplier = burleyParameters._scatteringMultiplier;
             asset.maxRadius = burleyParameters._maxRadius;
             asset.indexOfRefraction = burleyParameters._indexOfRefraction;
-            asset.worldScale = worldScaleOverride > 0f ? worldScaleOverride : worldScale;
-            asset.discSampleCount = discSampleCount;
-            asset.discKernelMaxRadius = discKernelMaxRadius;
+            asset.worldScale = worldScale;
+            asset.kernelSampleCount = discSampleCount;
+            asset.updateKernel();
 
             AssetDatabase.CreateAsset(asset, assetPath);
 
@@ -239,12 +238,42 @@ namespace Garena.TA.SSS
                 asset.discKernelTex = kernelCopy;
             }
 
-            var previewCopy = DuplicateTextureForAsset(discPreviewTexture, "DiscPreview");
-            if (previewCopy != null)
+            // 如果预览是 RenderTexture，则先读回为 Texture2D，然后把内容复制到一个新的 RenderTexture 资产中
+            Texture2D previewSource = null;
+            if (discPreviewTexture != null)
             {
-                AssetDatabase.AddObjectToAsset(previewCopy, asset);
-                asset.discPreviewTexture = previewCopy;
+                // 读回到临时 Texture2D（CPU 可访问）
+                var prev = RenderTexture.active;
+                RenderTexture.active = discPreviewTexture;
+                previewSource = new Texture2D(discPreviewTexture.width, discPreviewTexture.height,
+                    TextureFormat.RGBAFloat, false, true);
+                previewSource.ReadPixels(new Rect(0, 0, discPreviewTexture.width, discPreviewTexture.height), 0, 0,
+                    false);
+                previewSource.Apply(false, false);
+                RenderTexture.active = prev;
+
+                // 创建一个新的 RenderTexture 作为可序列化的子资产，并把预览内容拷贝到其中
+                var previewRT = new RenderTexture(previewSource.width, previewSource.height, 0, RenderTextureFormat.ARGBFloat)
+                {
+                    name = "DiscPreview",
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear,
+                    useMipMap = false,
+                    autoGenerateMips = false
+                };
+
+                // 将临时 Texture2D 内容拷贝到 RenderTexture
+                var prevActive = RenderTexture.active;
+                Graphics.Blit(previewSource, previewRT);
+                RenderTexture.active = prevActive;
+
+                AssetDatabase.AddObjectToAsset(previewRT, asset);
+                asset.discPreviewTexture = previewRT;
             }
+
+            // 清理临时读回的 Texture2D（不属于 asset）
+            if (previewSource != null)
+                Object.DestroyImmediate(previewSource);
 
             EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
@@ -272,11 +301,11 @@ namespace Garena.TA.SSS
         }
 
         public static void RegenerateKernelPreview(
-     Texture2D discKernel,
-     ref Texture2D previewTex,
-     int size,
-     float maxRadius,
-     float dotScale = 6f)
+            Texture2D discKernel,
+            ref Texture2D previewTex,
+            int size,
+            float maxRadius,
+            float dotScale = 6f)
         {
             if (discKernel == null)
             {
@@ -322,7 +351,7 @@ namespace Garena.TA.SSS
             for (int s = 0; s < n; s++)
             {
                 float rMM = kernel[s].a;
-                float theta = s * GoldenAngle;                 // 与 shader 一致
+                float theta = s * GoldenAngle; // 与 shader 一致
                 float rPixel = rMM * mmToPixel;
 
                 float px = center + Mathf.Cos(theta) * rPixel;
@@ -342,6 +371,7 @@ namespace Garena.TA.SSS
             previewTex.SetPixels(pixels);
             previewTex.Apply(false, false);
         }
+
         // ---------- 画实心圆点（带简单抗锯齿）----------
         private static void DrawFilledDot(Color[] px, int size, float cx, float cy, float radius, Color color)
         {
@@ -371,6 +401,7 @@ namespace Garena.TA.SSS
                 }
             }
         }
+
         // ---------- 画圆环边界 ----------
         private static void DrawCircleOutline(Color[] px, int size, float cx, float cy, float radius, Color color)
         {

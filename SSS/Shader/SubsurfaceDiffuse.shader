@@ -142,14 +142,9 @@ Shader "Unlit/NewUnlitShader"
                 float3 TangentWS = packedInput.tangentWS.xyz;
                 float3 BitangentWS = input.tangentToWorld[1];
 
-                
                 //计算公式
                 float NDL = saturate( dot(NormalWS, normalize(_SSSMainLightDir.xyz)));
                 
-                
-                
-                
-
                 ouputColor = float4(NDL, NDL, NDL, 1.0);
                 ouputAlbedo = float4(1, 1, 1, 1.0);
             }

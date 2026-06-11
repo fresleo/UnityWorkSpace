@@ -334,7 +334,7 @@ namespace Garena.TA.SSS
 
             // ---- 2. Burley disc 采样表 ----
             float maxR = GetEffectiveMaxRadius();
-            Texture2D discKernel = SSS_DiscSampling.GenerateDiscKernel(_burleyParameters, discSampleCount, maxR);
+            Texture2D discKernel = SSS_DiscSampling.GenerateDiscKernel(_burleyParameters, discSampleCount);
             if (discKernel != null)
                 SSS_DiscSampling.SaveDiscKernel(format, discKernel, basePath + "_BurleyDisc");
 

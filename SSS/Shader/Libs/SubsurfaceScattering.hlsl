@@ -5,6 +5,7 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Sampling/Fibonacci.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/API/D3D11.hlsl"
 #define GROUP_SIZE_1D               16   //group大小
 #define GROUP_SIZE_2D               (GROUP_SIZE_1D * GROUP_SIZE_1D)//wave 大小
 #define TEXTURE_CACHE_BORDER        2    //纹理边界，必须大于等于1，否则会有问题
@@ -24,15 +25,17 @@ groupshared float2 textureCache1[TEXTURE_CACHE_SIZE_2D]; //{irradiance.b, device
 
 
 //----------------------------------------Varible----------------------------
-Texture2D<float4> _SSSDiscKernel;
-Texture2D<float4> _SSSDiffuse; // rgb = 漫反射辐照度, a = coverage(是否 SSS 像素)
+TEXTURE2D (_SSSDiscKernel);
+TEXTURE2D (_SSSDiffuse); // rgb = 漫反射辐照度, a = coverage(是否 SSS 像素)
 SAMPLER(sampler_SSSDiffuse);
-Texture2D<float4> _SSSAlbedo; // rgb = 漫反射反照率
+TEXTURE2D (_SSSAlbedo); // rgb = 漫反射反照率
+SAMPLER(sampler_SSSAlbedo);
+
 
 float4 _ShapeParams;
 float _MaxRadius;
 float _WorldScale;
-float _DiscKernelCount;
+uint _DiscKernelCount;
 //--------------------------------------end =---------------------------------
 //检查是否需要sss
 bool TestLightingForSSS(float3 subsurfaceLighting)
