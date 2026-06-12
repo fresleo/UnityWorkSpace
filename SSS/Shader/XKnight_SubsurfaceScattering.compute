@@ -51,7 +51,7 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
     if (passedStencilTest) //判断是否需要加载深度
     {
         //设备深度是反向的，越远的物体深度值越大，近处物体深度值越小。Unity 的深度值经过了非线性变换，不能直接使用，需要线性化处理。
-        centerDepth = LoadCameraDepth(pixelCoord);
+        centerDepth = LoadCameraDepth(pixelCoord* _RTHandleScale.xy);
     }
     //----------------------------------------缓存像素点----------------------------------------------
 
@@ -139,7 +139,7 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
 
         if (TestLightingForSSS(irradiance2))
         {
-            depth2 = LoadCameraDepth(pixelCoord2);
+            depth2 = LoadCameraDepth(pixelCoord2* _RTHandleScale.xy);
         }
         //将边界点存入
         StoreSampleToCacheMemory(float4(irradiance2, depth2), cacheCoord2);

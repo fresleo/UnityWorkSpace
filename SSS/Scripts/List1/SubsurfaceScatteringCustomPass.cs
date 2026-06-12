@@ -107,9 +107,9 @@ namespace Garena.TA.SSS
             // int h = hd.actualHeight;
 
             //动态贴图的设置
-            ReallocIfNeeded(ref _diffuseRT, w, h, enableRandomWrite: true);
-            ReallocIfNeeded(ref _albedoRT, w, h, enableRandomWrite: true);
-            ReallocIfNeeded(ref _lightingRT, w, h, enableRandomWrite: true);
+            // ReallocIfNeeded(ref _diffuseRT, w, h, enableRandomWrite: true);
+            // ReallocIfNeeded(ref _albedoRT, w, h, enableRandomWrite: true);
+            // ReallocIfNeeded(ref _lightingRT, w, h, enableRandomWrite: true);
 
             // 主光源全局量
             PushGlobals(cmd);
@@ -244,7 +244,7 @@ namespace Garena.TA.SSS
             int tx = (w + 15) / 16;
             int ty = (h + 15) / 16;
             var numTilesZ = 1;
-            cmd.DispatchCompute(scatterCompute, _kernelScatter, tx, ty, 1);
+            cmd.DispatchCompute(scatterCompute, _kernelScatter, tx, ty, numTilesZ);
         }
 
         // -------------------------------------------------------------------------
@@ -266,12 +266,11 @@ namespace Garena.TA.SSS
         //
         //     CoreUtils.DrawFullScreen(ctx.cmd, _scatterMat, _lightingRT, ctx.propertyBlock, kPassScatterFallback);
         // }
-
         // -------------------------------------------------------------------------
         void RenderComposite(CustomPassContext ctx, int w, int h)
         {
             _scatterMat.SetTexture(SID.Albedo, _albedoRT);
-            _scatterMat.SetTexture(SID.ScatterResult, _lightingRT);
+            _scatterMat.SetTexture(SID.ScatterResult, _diffuseRT);
 
             CoreUtils.DrawFullScreen(ctx.cmd, _scatterMat, ctx.cameraColorBuffer, ctx.propertyBlock, kPassComposite);
         }

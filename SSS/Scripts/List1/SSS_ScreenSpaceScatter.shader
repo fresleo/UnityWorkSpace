@@ -1,4 +1,3 @@
-
 Shader "Hidden/ScreenSpaceScatter"
 {
     SubShader
@@ -58,7 +57,7 @@ Shader "Hidden/ScreenSpaceScatter"
             float4 FragScatter(Varyings i) : SV_Target
             {
                 int2 size = (int2)_SSSScreenSize.xy;
-                int2 px = clamp((int2)((i.uv/ _SSSRtHandleScale.xy) * _SSSScreenSize.xy), int2(0, 0), size - 1);
+                int2 px = clamp((int2)((i.uv / _SSSRtHandleScale.xy) * _SSSScreenSize.xy), int2(0, 0), size - 1);
 
                 float4 centerIrr = LOAD_TEXTURE2D(_SSSDiffuse, px);
                 if (centerIrr.a < 1e-4 || _DiscKernelCount <= 0)
@@ -117,11 +116,13 @@ Shader "Hidden/ScreenSpaceScatter"
             #pragma vertex Vert
             #pragma fragment FragComposite
             #pragma target 4.5
-            
+
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
+
             TEXTURE2D(_SSSAlbedo);
             TEXTURE2D(_SSSScatterResult);
+
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
@@ -139,7 +140,7 @@ Shader "Hidden/ScreenSpaceScatter"
             float4 FragComposite(Varyings i) : SV_Target
             {
                 int2 size = (int2)_ScreenSize.xy;
-                int2 px = clamp((int2)((i.uv/ _RTHandleScale.xy) * _ScreenSize.xy), int2(0, 0), size - 1);
+                int2 px = clamp((int2)((i.uv / _RTHandleScale.xy) * _ScreenSize.xy), int2(0, 0), size - 1);
                 float3 c = LOAD_TEXTURE2D(_SSSScatterResult, px).rgb;
                 float a = LOAD_TEXTURE2D(_SSSAlbedo, px).a;
                 return float4(c, a);

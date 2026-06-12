@@ -67,7 +67,7 @@ float4 LoadSampleFromCacheMemory(int2 cacheCoord)
 float4 LoadSampleFromVideoMemory(int2 pixelCoord)
 {
     float3 irradiance = LOAD_TEXTURE2D_X(_SSSDiffuse, pixelCoord).rgb;
-    float depth = LoadCameraDepth(pixelCoord);
+    float depth = LoadCameraDepth(pixelCoord* _RTHandleScale.xy);
     return float4(irradiance, depth);
 }
 
