@@ -17,13 +17,24 @@ namespace Garena.TA.SSS
         [SerializeField] public float worldScale = 1f;
         [SerializeField] public float indexOfRefraction = 1.38f;
         [SerializeField] public int kernelSampleCount = 32;
-        
+        [SerializeField] public float Fresnel0;
+        [SerializeField] public float FresnelScale;
+        [SerializeField] public Color TransmissionColor;
+        [SerializeField] public float ThicknessRemapMin;
+        [SerializeField] public float ThicknessRemapMax;
 
+        
         [HideInInspector] [SerializeField] public int InputDiscSampleCount = 32;
-        [SerializeField] public float InputMaxRadius = 15f;
-        [SerializeField] public Vector4 InputShape = Vector4.zero;
-        [SerializeField] public float Input_d;
-        [SerializeField] public float InputWroldScale;
+        [HideInInspector] [SerializeField] public float InputMaxRadius = 15f;
+        [HideInInspector] [SerializeField] public Vector4 InputShape = Vector4.zero;
+        [HideInInspector][SerializeField] public float Input_d;
+        [HideInInspector][SerializeField] public float InputWroldScale;
+        
+        [HideInInspector] [SerializeField] public float InputFresnel0;
+        [HideInInspector][SerializeField] public float InputFresnelScale;
+        [HideInInspector]  [SerializeField] public Vector3 InputTransmissionColor;
+        [HideInInspector] [SerializeField] public float InputThicknessRemapMin;
+        [HideInInspector] [SerializeField] public float InputThicknessRemapMax;
         [Header("Generated Textures")] public Texture2D discKernelTex;
         public RenderTexture discPreviewTexture;
         public uint hash;

@@ -26,11 +26,10 @@ groupshared float2 textureCache1[TEXTURE_CACHE_SIZE_2D]; //{irradiance.b, device
 
 //----------------------------------------Varible----------------------------
 TEXTURE2D (_SSSDiscKernel);
-TEXTURE2D (_SSSDiffuse); // rgb = 漫反射辐照度, a = coverage(是否 SSS 像素)
 SAMPLER(sampler_SSSDiffuse);
-TEXTURE2D (_SSSAlbedo); // rgb = 漫反射反照率
 SAMPLER(sampler_SSSAlbedo);
-
+TEXTURE2D_X(_SSSDiffuse);     // ← 改
+TEXTURE2D_X(_SSSAlbedo);
 
 float4 _ShapeParams;
 float _MaxRadius;
@@ -66,8 +65,9 @@ float4 LoadSampleFromCacheMemory(int2 cacheCoord)
 
 float4 LoadSampleFromVideoMemory(int2 pixelCoord)
 {
-    float3 irradiance = LOAD_TEXTURE2D_X(_SSSDiffuse, pixelCoord).rgb;
-    float depth = LoadCameraDepth(pixelCoord* _RTHandleScale.xy);
+    int2 p = clamp(pixelCoord, 0, (int2)_ScreenSize.xy - 1);
+    float3 irradiance = LOAD_TEXTURE2D_X(_SSSDiffuse, p).rgb;
+    float  depth = LoadCameraDepth(p);       // ← 去掉 * _RTHandleScale.xy
     return float4(irradiance, depth);
 }
 

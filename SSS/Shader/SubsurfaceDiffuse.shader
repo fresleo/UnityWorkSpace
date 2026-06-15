@@ -150,6 +150,7 @@ Shader "Hidden/SubsurfaceDiffuse"
                 DirectLightSSS(subsurfaceLight, DirectDiffuse);
 
                 float3 finalColor = DirectDiffuse * 0.5f + (IndirectDiffuse * 0.5f);
+                // finalColor *=float3(0,1,0);
                 finalColor.b = max(finalColor.b, HALF_MIN);
 
                 ouputColor = float4(finalColor, 1.0);

@@ -70,20 +70,19 @@ namespace Garena.TA.SSS
 
             // diffuse(辐照度) + albedo：half 浮点，Point，全分辨率
             _diffuseRT = RTHandles.Alloc(
-                Vector2.one, slices: TextureXR.slices, dimension: TextureDimension.Tex2D,
+                Vector2.one, slices: TextureXR.slices, dimension: TextureXR.dimension,  
                 colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                 filterMode: FilterMode.Point, wrapMode: TextureWrapMode.Clamp,
                 useDynamicScale: true, name: "_SSSDiffuse");
 
             _albedoRT = RTHandles.Alloc(
-                Vector2.one, slices: TextureXR.slices, dimension: TextureDimension.Tex2D,
+                Vector2.one, slices: TextureXR.slices, dimension: TextureXR.dimension,
                 colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                 filterMode: FilterMode.Point, wrapMode: TextureWrapMode.Clamp,
                 useDynamicScale: true, name: "_SSSAlbedo");
 
-            // lighting：compute 需要 randomWrite
             _lightingRT = RTHandles.Alloc(
-                Vector2.one, slices: TextureXR.slices, dimension: TextureDimension.Tex2D,
+                Vector2.one, slices: TextureXR.slices, dimension: TextureXR.dimension,
                 colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                 filterMode: FilterMode.Point, wrapMode: TextureWrapMode.Clamp,
                 enableRandomWrite: true, useDynamicScale: true, name: "_SSSLighting");
@@ -101,10 +100,9 @@ namespace Garena.TA.SSS
             // Debug.Log("_diffuseRT.rt.dimension:"+_diffuseRT.rt.dimension);
             var hd = ctx.hdCamera;
             var cmd = ctx.cmd;
-            int w = ctx.cameraDepthBuffer.rt.width;
-            int h = ctx.cameraDepthBuffer.rt.height;
-            // int w = hd.actualWidth;
-            // int h = hd.actualHeight;
+
+            int w = hd.actualWidth;
+            int h = hd.actualHeight;
 
             //动态贴图的设置
             // ReallocIfNeeded(ref _diffuseRT, w, h, enableRandomWrite: true);
@@ -154,22 +152,12 @@ namespace Garena.TA.SSS
             if (handle != null && handle.rt.width == w && handle.rt.height == h) return;
 
             handle?.Release();
-
-            // RTHandles.Alloc(
-            //     Vector2.one, slices: TextureXR.slices, dimension: TextureDimension.Tex2D,
-            //     colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
-            //     filterMode: FilterMode.Point, wrapMode: TextureWrapMode.Clamp,
-            //     enableRandomWrite: true, useDynamicScale: true, name: "_SSSLighting");
-
+            
             handle = RTHandles.Alloc(
-                w, h,
-                slices: TextureXR.slices,
+                w, h, slices: TextureXR.slices, dimension: TextureXR.dimension,
                 colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
-                filterMode: FilterMode.Point,
-                wrapMode: TextureWrapMode.Clamp,
-                enableRandomWrite: enableRandomWrite,
-                useDynamicScale: false,
-                name: handle?.name ?? "_SSSTemp");
+                filterMode: FilterMode.Point, wrapMode: TextureWrapMode.Clamp,
+                enableRandomWrite: true, useDynamicScale: true,  name: handle?.name ?? "_SSSTemp");
         }
 
         void PushGlobals(CommandBuffer cmd)
@@ -270,7 +258,7 @@ namespace Garena.TA.SSS
         void RenderComposite(CustomPassContext ctx, int w, int h)
         {
             _scatterMat.SetTexture(SID.Albedo, _albedoRT);
-            _scatterMat.SetTexture(SID.ScatterResult, _diffuseRT);
+            _scatterMat.SetTexture(SID.ScatterResult, _lightingRT);
 
             CoreUtils.DrawFullScreen(ctx.cmd, _scatterMat, ctx.cameraColorBuffer, ctx.propertyBlock, kPassComposite);
         }

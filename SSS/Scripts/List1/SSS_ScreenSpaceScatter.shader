@@ -111,7 +111,7 @@ Shader "Hidden/ScreenSpaceScatter"
         {
             Name "SSSComposite"
 
-            Blend SrcAlpha OneMinusSrcAlpha
+            Blend One One
             HLSLPROGRAM
             #pragma vertex Vert
             #pragma fragment FragComposite
@@ -120,8 +120,8 @@ Shader "Hidden/ScreenSpaceScatter"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
 
-            TEXTURE2D(_SSSAlbedo);
-            TEXTURE2D(_SSSScatterResult);
+            TEXTURE2D_X(_SSSAlbedo);
+            TEXTURE2D_X(_SSSScatterResult);
 
             struct Varyings
             {
@@ -141,8 +141,8 @@ Shader "Hidden/ScreenSpaceScatter"
             {
                 int2 size = (int2)_ScreenSize.xy;
                 int2 px = clamp((int2)((i.uv / _RTHandleScale.xy) * _ScreenSize.xy), int2(0, 0), size - 1);
-                float3 c = LOAD_TEXTURE2D(_SSSScatterResult, px).rgb;
-                float a = LOAD_TEXTURE2D(_SSSAlbedo, px).a;
+                float3 c = LOAD_TEXTURE2D_X(_SSSScatterResult, px).rgb;
+                float a = LOAD_TEXTURE2D_X(_SSSAlbedo, px).a;
                 return float4(c, a);
             }
             ENDHLSL

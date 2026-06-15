@@ -21,6 +21,12 @@ namespace Garena.TA.SSS
         private SerializedProperty worldScaleProp;
 
         private SerializedProperty kernelSampleCountProp;
+        
+        public SerializedProperty Fresnel0Prop;
+         public SerializedProperty FresnelScaleProp;
+         public SerializedProperty TransmissionColorProp;
+         public SerializedProperty ThicknessRemapMinProp;
+         public SerializedProperty ThicknessRemapMaxProp;
 
         //==========================Editor properties ====================
         private static Styles _styles;
@@ -33,6 +39,14 @@ namespace Garena.TA.SSS
             maxRadiusProp = serializedObject.FindProperty("maxRadius");
             worldScaleProp = serializedObject.FindProperty("worldScale");
             kernelSampleCountProp = serializedObject.FindProperty("kernelSampleCount");
+            
+            Fresnel0Prop = serializedObject.FindProperty("Fresnel0");
+            FresnelScaleProp = serializedObject.FindProperty(" FresnelScale");
+            TransmissionColorProp = serializedObject.FindProperty("TransmissionColor");
+            ThicknessRemapMinProp = serializedObject.FindProperty("ThicknessRemapMin");
+            ThicknessRemapMaxProp = serializedObject.FindProperty("ThicknessRemapMax");
+            
+            
             GetOrCreateDiscPreviewMaterial();
             // Ensure preview is generated immediately on selection
             DiscPreviewByShader((DiffusionProfileParam)target);
@@ -68,6 +82,9 @@ namespace Garena.TA.SSS
             }
 
             EditorGUILayout.PropertyField(worldScaleProp, _styles.ProfileWorldScale);
+            EditorGUILayout.PropertyField(worldScaleProp, _styles.ProfileWorldScale);//Fresnel0
+            
+            
             serializedObject.ApplyModifiedProperties();
 
             asset.updateKernel();
