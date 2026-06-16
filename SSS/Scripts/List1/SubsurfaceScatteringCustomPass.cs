@@ -21,8 +21,7 @@ namespace Garena.TA.SSS
         public bool remultiplyAlbedo = true; // 散射后乘回反照率(= 最终漫反射颜色)
 
         public DiffusionProfileParam Profile;
-
-        public Light mainLight; // 不填则用 RenderSettings.sun
+        
 
         // ---------------- 内部资源 ----------------
         RTHandle _diffuseRT; // rgb = 漫反射辐照度, a = coverage
@@ -35,8 +34,7 @@ namespace Garena.TA.SSS
 
         RenderTargetIdentifier[] _splitMRT;
         readonly ShaderTagId[] _shaderTags = new ShaderTagId[1];
-
-        const int kPassScatterFallback = 0;
+        
         const int kPassComposite = 1;
 
         // ---------------- Shader 属性 ID ----------------
@@ -52,9 +50,12 @@ namespace Garena.TA.SSS
             public static readonly int KernelCount = Shader.PropertyToID("_DiscKernelCount");
 
 
-            public static readonly int MainLightDir = Shader.PropertyToID("_SSSMainLightDir");
-            public static readonly int MainLightColor = Shader.PropertyToID("_SSSMainLightColor");
+            public static readonly int _ThicknessRemap = Shader.PropertyToID("_Knight_ThicknessRemap");
+            public static readonly int _TransmissionTint = Shader.PropertyToID("_TransmissionTint");
             public static readonly int ScatterResult = Shader.PropertyToID("_SSSScatterResult");
+            
+            
+            
         }
 
         const string kKeywordRemultiply = "SSS_REMULTIPLY_ALBEDO";
@@ -109,7 +110,7 @@ namespace Garena.TA.SSS
             // ReallocIfNeeded(ref _albedoRT, w, h, enableRandomWrite: true);
             // ReallocIfNeeded(ref _lightingRT, w, h, enableRandomWrite: true);
 
-            // 主光源全局量
+            // 全局量
             PushGlobals(cmd);
 
             // ---- Stage 1: albedo----
@@ -162,21 +163,16 @@ namespace Garena.TA.SSS
 
         void PushGlobals(CommandBuffer cmd)
         {
-            Light l = mainLight != null ? mainLight : RenderSettings.sun;
-            Vector4 rtHandleScale = _albedoRT.rtHandleProperties.rtHandleScale;
-            // Debug.Log("_albedoRT x:" + rtHandleScale.x + ", y:" + rtHandleScale.y);
-            if (l != null && l.type == LightType.Directional)
-            {
-                Vector3 dir = -l.transform.forward; // 指向光源
-                Color c = l.color * l.intensity;
-                cmd.SetGlobalVector(SID.MainLightDir, new Vector4(dir.x, dir.y, dir.z, 0f));
-                cmd.SetGlobalVector(SID.MainLightColor, new Vector4(c.r, c.g, c.b, 0f));
-            }
-            else
-            {
-                cmd.SetGlobalVector(SID.MainLightDir, new Vector4(0f, 1f, 0f, 0f));
-                cmd.SetGlobalVector(SID.MainLightColor, Vector4.zero);
-            }
+            Debug.Log("Shape:" + Profile.InputShape.ToString());
+            Debug.Log("MaxRadius:" + Profile.InputMaxRadius.ToString());
+            Debug.Log("WorldScale:" + Profile.InputWroldScale.ToString());
+            Debug.Log(("DiscSampleCount:" + Profile.InputDiscSampleCount.ToString()));
+            Debug.Log("Profile.InputShape:"+Profile.InputShape);
+            Debug.Log("Profile.InputThicknessRemap:"+Profile.InputThicknessRemap);
+            
+            cmd.SetGlobalVector(SID.Shape, Profile.InputShape);
+            cmd.SetGlobalVector(SID._ThicknessRemap,Profile.InputThicknessRemap);
+            cmd.SetGlobalVector(SID._TransmissionTint,Profile.InputTransmissionTint);
         }
 
         // -------------------------------------------------------------------------
@@ -198,7 +194,6 @@ namespace Garena.TA.SSS
             };
 
             var rl = ctx.renderContext.CreateRendererList(desc);
-
             _splitMRT[0] = _diffuseRT; //第 0 个颜色附件指向
             _splitMRT[1] = _albedoRT; //第 1 个颜色附件指向
             // 用相机深度做 ZTest（SubsurfaceDiffuse Pass 内 ZTest Equal / ZWrite Off）
@@ -219,11 +214,7 @@ namespace Garena.TA.SSS
             cmd.SetComputeTextureParam(scatterCompute, _kernelScatter, SID.DiscKernel, Profile.discKernelTex);
             cmd.SetComputeTextureParam(scatterCompute, _kernelScatter, SID.Output, _lightingRT);
 
-
-            Debug.Log("Shape:" + Profile.InputShape.ToString());
-            Debug.Log("MaxRadius:" + Profile.InputMaxRadius.ToString());
-            Debug.Log("WorldScale:" + Profile.InputWroldScale.ToString());
-            Debug.Log(("DiscSampleCount:" + Profile.InputDiscSampleCount.ToString()));
+            
 
             cmd.SetComputeFloatParam(scatterCompute, SID.WorldScale, Profile.InputWroldScale);
             cmd.SetComputeIntParam(scatterCompute, SID.KernelCount, Profile.InputDiscSampleCount);

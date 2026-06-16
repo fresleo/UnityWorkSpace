@@ -134,7 +134,8 @@ namespace Garena.TA.SSS
         private static float ShapeParam(float a)
         {
             float diff = a - 0.8f;
-            return 1.85f - a + 7.0f * diff * diff * diff;
+            float s = 1.85f - a + 7.0f * diff * diff * diff;
+            return Mathf.Max(1e-3f, s);  // 保证恒正
         }
 
         /// <summary>逆 CDF 查找：给定 ξ∈[0,1] 返回对应半径（线性插值）。</summary>

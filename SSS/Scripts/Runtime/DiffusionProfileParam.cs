@@ -17,9 +17,10 @@ namespace Garena.TA.SSS
         [SerializeField] public float worldScale = 1f;
         [SerializeField] public float indexOfRefraction = 1.38f;
         [SerializeField] public int kernelSampleCount = 32;
+        
         [SerializeField] public float Fresnel0;
         [SerializeField] public float FresnelScale;
-        [SerializeField] public Color TransmissionColor;
+        [SerializeField] public Color TransmissionTint;
         [SerializeField] public float ThicknessRemapMin;
         [SerializeField] public float ThicknessRemapMax;
 
@@ -32,18 +33,20 @@ namespace Garena.TA.SSS
         
         [HideInInspector] [SerializeField] public float InputFresnel0;
         [HideInInspector][SerializeField] public float InputFresnelScale;
-        [HideInInspector]  [SerializeField] public Vector3 InputTransmissionColor;
-        [HideInInspector] [SerializeField] public float InputThicknessRemapMin;
-        [HideInInspector] [SerializeField] public float InputThicknessRemapMax;
+        [HideInInspector]  [SerializeField] public Vector3 InputTransmissionTint;
+        [HideInInspector] [SerializeField] public Vector4 InputThicknessRemap;
+        
         [Header("Generated Textures")] public Texture2D discKernelTex;
         public RenderTexture discPreviewTexture;
+        public RenderTexture TransmistPreviewTexture;
         public uint hash;
         
 
         private static float ShapeParam(float a)
         {
             float diff = a - 0.8f;
-            return 1.85f - a + 7.0f * diff * diff * diff;
+            float s = 1.85f - a + 7.0f * diff * diff * diff;
+            return Mathf.Max(1e-3f, s);  // 保证恒正
         }
 
         public float GetMeanFreePath(float _maxRadius)
@@ -66,6 +69,13 @@ namespace Garena.TA.SSS
                 ShapeParam(s.z),
                 Input_d
             );
+            
+            //transmit
+            InputFresnel0 = Fresnel0;
+            InputFresnelScale = FresnelScale;
+            InputTransmissionTint = new Vector3(TransmissionTint.linear.r, TransmissionTint.linear.g, TransmissionTint.linear.b);
+            InputThicknessRemap =new Vector4(ThicknessRemapMin,ThicknessRemapMax,0,0) ;
+            
         }
 
         private void OnEnable()

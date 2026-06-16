@@ -9,6 +9,15 @@
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightDefinition.cs.hlsl"
 #define HALF_MIN 6.103515625e-5
 
+
+// haven't defined param: _ThickFactor , sufsurfaceLighting.Thickness
+
+float _ThickFactor;
+float3 _TransmissionTint;
+float2 _Knight_ThicknessRemap;
+float3 _ShapeParams;
+
+
 struct DirectSufsurfaceLighting
 {
     float3 Albedo;
@@ -18,20 +27,42 @@ struct DirectSufsurfaceLighting
     float2 uv;
 };
 
-sampler2D _PreIntegrated; //PerMaterial
+float3 ComputeTransmittanceProfile(float thickness, float3 S)
+{
+    float3 transmittance = exp(-thickness * S);
+    return transmittance * _TransmissionTint;
+}
+
+
 void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 DirectDiffuse)
 {
     float3 normal = sufsurfaceLighting.NormalWS;
     DirectionalLightData lightData = _DirectionalLightDatas[0];
     float3 lightDir = normalize(-lightData.forward.xyz);
-    
+    float NDL = dot(normal, lightDir);
+
+    half TransmitFactor = saturate((NDL * _ThickFactor + 0.5));
+    // float3 backColor = (1 - TransmitFactor) * sufsurfaceLighting.Albedo * _TransmissionTint;
+
+    float Thickness = max(0, sufsurfaceLighting.Thickness);
+    Thickness = 1;
+    // half4 colorGama = IsGammaSpace() ? half4(0.5019608, 0.5019608, 1, 0) : half4(0.2158605, 0.2158605, 1, 0);
+
+    float t = lerp(_Knight_ThicknessRemap.x, _Knight_ThicknessRemap.y, TransmitFactor);
     //计算公式
-    float NDL = saturate(dot(normal,lightDir ));
-
-    float3 PreIntegrated = tex2D(_PreIntegrated, sufsurfaceLighting.uv.xy).rgb;
-
-    DirectDiffuse = float3(NDL, NDL, NDL);
+    // float test = ComputeTransmittanceProfile(t, _ShapeParams);
+    float3 Transmist = sufsurfaceLighting.Albedo * saturate(Thickness * ComputeTransmittanceProfile(t, _ShapeParams) * (NDL * 0.85 + 0.27)) + 
+        saturate(Thickness * ComputeTransmittanceProfile(t, _ShapeParams) * (1- TransmitFactor));//背面
+  
+    DirectDiffuse =float3(Transmist) ;
 }
+
+void FresnelTerm(DirectSufsurfaceLighting sufsurfaceLighting)
+{
+    
+    
+}
+
 
 float3 DecodeSH(float3 normalWS)
 {

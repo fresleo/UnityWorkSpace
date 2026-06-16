@@ -36,34 +36,13 @@ Shader "Hidden/SubsurfaceDiffuse"
                 float _Float0;
                 float _Phase;
             CBUFFER_END
-
-
-            struct Attributes
-            {
-                float4 positionOS : POSITION;
-                half3 normalOS : NORMAL;
-                half4 tangentOS : TANGENT;
-                float4 texcoord : TEXCOORD0;
-            };
-
-            struct PackedVaryings
-            {
-                float3 positionWS : TEXCOORD0;
-                half3 normalWS : TEXCOORD1;
-                float4 tangentWS : TEXCOORD2;
-                float2 uv : TEXCOORD0;
-                float4 vertex : SV_POSITION;
-            };
-
+            
+            // haven't defined param: _Thickness _BaseColor
+            
             sampler2D _BaseColor;
-
-            sampler2D _CurveTex;
             sampler2D _Thickness;
-            sampler2D _PreIntegratedTex;
 
-            float4 _SSSMainLightDir;
-            float4 _SSSMainLightColor;
-
+            
 
             struct AttributesMesh
             {
@@ -129,10 +108,7 @@ Shader "Hidden/SubsurfaceDiffuse"
                 float3 NormalWS = packedInput.normalWS;
                 float3 TangentWS = packedInput.tangentWS.xyz;
                 float3 BitangentWS = input.tangentToWorld[1];
-
-                float curve = tex2D(_CurveTex, packedInput.uv1.xy).r;
-                float thickness = tex2D(_CurveTex, packedInput.uv1.xy).g;
-
+                
                 float3 Albedo = tex2D(_BaseColor, packedInput.uv1.xy).rgb;
                 // ------------------ indirectDiffuse ------------------
                 float3 IndirectDiffuse = float3(0, 0, 0);
@@ -142,18 +118,19 @@ Shader "Hidden/SubsurfaceDiffuse"
                 // -------------- directDiffuse ------------------
                 DirectSufsurfaceLighting subsurfaceLight;
                 float3 DirectDiffuse = float3(0, 0, 0);
+                subsurfaceLight = (DirectSufsurfaceLighting)0;
                 subsurfaceLight.Albedo = Albedo.rgb;
                 subsurfaceLight.NormalWS = NormalWS;
                 subsurfaceLight.uv = packedInput.uv1.xy;
                 subsurfaceLight.PositionWS = PositionWS;
-
+                
                 DirectLightSSS(subsurfaceLight, DirectDiffuse);
 
                 float3 finalColor = DirectDiffuse * 0.5f + (IndirectDiffuse * 0.5f);
-                // finalColor *=float3(0,1,0);
+ 
                 finalColor.b = max(finalColor.b, HALF_MIN);
 
-                ouputColor = float4(finalColor, 1.0);
+                ouputColor = float4(DirectDiffuse, 1.0);
                 ouputAlbedo = float4(1, 1, 1, 1.0);
             }
             ENDHLSL
