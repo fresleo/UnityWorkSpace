@@ -123,7 +123,8 @@ Shader "Hidden/SubsurfaceDiffuse"
                 subsurfaceLight.NormalWS = NormalWS;
                 subsurfaceLight.uv = packedInput.uv1.xy;
                 subsurfaceLight.PositionWS = PositionWS;
-                
+                subsurfaceLight.
+                subsurfaceLight.viewDir = V;
                 DirectLightSSS(subsurfaceLight, DirectDiffuse);
 
                 float3 finalColor = DirectDiffuse * 0.5f + (IndirectDiffuse * 0.5f);

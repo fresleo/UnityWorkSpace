@@ -1,3 +1,12 @@
+//author:calvin
+//date:26/6/17
+//description:
+//            1.sss直接散射 
+//            2.间接散射（球谐）
+//            3.阴影 
+//            4.表面散射
+
+
 #ifndef _SUBSURFACELIGHTING_HLSL
 #define _SUBSURFACELIGHTING_HLSL
 
@@ -10,12 +19,16 @@
 #define HALF_MIN 6.103515625e-5
 
 
-// haven't defined param: _ThickFactor , sufsurfaceLighting.Thickness
+// haven't defined param: _ThickOffset , sufsurfaceLighting.Thickness
 
-float _ThickFactor;
+float _ThickOffset;
 float3 _TransmissionTint;
 float2 _Knight_ThicknessRemap;
 float3 _ShapeParams;
+
+
+float _Smoothness;
+float _Fresnel0;
 
 
 struct DirectSufsurfaceLighting
@@ -24,6 +37,7 @@ struct DirectSufsurfaceLighting
     float Thickness;
     float3 NormalWS;
     float3 PositionWS;
+    float3 viewDir;
     float2 uv;
 };
 
@@ -33,6 +47,18 @@ float3 ComputeTransmittanceProfile(float thickness, float3 S)
     return transmittance * _TransmissionTint;
 }
 
+real F_Schlick(real f0, real f90, real u)
+{
+    real x = 1.0 - u;
+    real x2 = x * x;
+    real x5 = x * x2 * x2;
+    return (f90 - f0) * x5 + f0;
+}
+
+real F_Schlick(real f0, real u)
+{
+    return F_Schlick(f0, 1.0, u);
+}
 
 void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 DirectDiffuse)
 {
@@ -41,7 +67,8 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
     float3 lightDir = normalize(-lightData.forward.xyz);
     float NDL = dot(normal, lightDir);
 
-    half TransmitFactor = saturate((NDL * _ThickFactor + 0.5));
+
+    half TransmitFactor = saturate((NDL * _ThickOffset + 0.5));
     // float3 backColor = (1 - TransmitFactor) * sufsurfaceLighting.Albedo * _TransmissionTint;
 
     float Thickness = max(0, sufsurfaceLighting.Thickness);
@@ -51,16 +78,26 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
     float t = lerp(_Knight_ThicknessRemap.x, _Knight_ThicknessRemap.y, TransmitFactor);
     //计算公式
     // float test = ComputeTransmittanceProfile(t, _ShapeParams);
-    float3 Transmist = sufsurfaceLighting.Albedo * saturate(Thickness * ComputeTransmittanceProfile(t, _ShapeParams) * (NDL * 0.85 + 0.27)) + 
-        saturate(Thickness * ComputeTransmittanceProfile(t, _ShapeParams) * (1- TransmitFactor));//背面
-  
-    DirectDiffuse =float3(Transmist) ;
-}
 
-void FresnelTerm(DirectSufsurfaceLighting sufsurfaceLighting)
-{
+    float3 Transmist = sufsurfaceLighting.Albedo * saturate(
+            Thickness * ComputeTransmittanceProfile(t, _ShapeParams) * (NDL * 0.85 + 0.27)) +
+        saturate(Thickness * ComputeTransmittanceProfile(t, _ShapeParams) * (1 - TransmitFactor));
+
+  
     
+    //===================fresnel (模仿光滑表面)============================
+
+    float3 viewXDirWS = normalize(mul(_InvViewMatrix, float4(0, 0, 0,1)).xyz - sufsurfaceLighting.PositionRWS);
+
+    float NDV = dot(viewXDirWS, sufsurfaceLighting.NormalWS);
+    // NDV =(NDV +1)*.5;
+    half3 fresnelTerm = F_Schlick(_Fresnel0, NDV);
+    fresnelTerm *= _Smoothness;
+    fresnelTerm = 1 - fresnelTerm;
+
+    float3 final = Transmist * fresnelTerm + (1 - fresnelTerm);
     
+    DirectDiffuse =float3(1-fresnelTerm) ;
 }
 
 

@@ -27,7 +27,7 @@ namespace Garena.TA.SSS
         public SerializedProperty Fresnel0Prop;
         public SerializedProperty FresnelScaleProp;
         public SerializedProperty TransmissionTintProp;
-
+        public SerializedProperty ThickOffsetProp;
 
         //==========================Editor properties ====================
         private static Styles _styles;
@@ -44,7 +44,7 @@ namespace Garena.TA.SSS
             Fresnel0Prop = serializedObject.FindProperty("Fresnel0");
             FresnelScaleProp = serializedObject.FindProperty("FresnelScale");
             TransmissionTintProp = serializedObject.FindProperty("TransmissionTint");
-
+            ThickOffsetProp = serializedObject.FindProperty("ThickOffset");
 
             GetOrCreateDiscPreviewMaterial();
             // Ensure preview is generated immediately on selection
@@ -84,17 +84,7 @@ namespace Garena.TA.SSS
                 EditorGUILayout.PropertyField(scatteringMultiplierProp, _styles.ScatteringMultiplier);
                 EditorGUILayout.PropertyField(maxRadiusProp, _styles.ProfileMaxRadius);
                 EditorGUILayout.PropertyField(kernelSampleCountProp, _styles.ProfileKernelSampleCount);
-
-                // Transmittance properties
-                EditorGUILayout.PropertyField(Fresnel0Prop, _styles.Fresnel0Prop);
-                EditorGUILayout.PropertyField(FresnelScaleProp, _styles.FresnelScaleProp);
-                EditorGUILayout.PropertyField(TransmissionTintProp, _styles.ProfileTransmissionTint);
-                EditorGUILayout.BeginHorizontal();
-                // EditorGUILayout.PropertyField(ThicknessRemapMinProp, new GUIContent("Thickness Remap Min"));
-                // EditorGUILayout.PropertyField(ThicknessRemapMaxProp, new GUIContent("Thickness Remap Max"));
-                EditorGUILayout.MinMaxSlider(_styles.ProfileThicknessRemap, ref asset.ThicknessRemapMin,
-                    ref asset.ThicknessRemapMax, 0f, 2f);
-                EditorGUILayout.EndHorizontal();
+                
 
                 if (cc.changed)
                 {
@@ -102,6 +92,17 @@ namespace Garena.TA.SSS
                 }
             }
 
+            // Transmittance properties
+            EditorGUILayout.PropertyField(Fresnel0Prop, _styles.Fresnel0Prop);
+            EditorGUILayout.PropertyField(FresnelScaleProp, _styles.FresnelScaleProp);
+            EditorGUILayout.PropertyField(TransmissionTintProp, _styles.ProfileTransmissionTint);
+            EditorGUILayout.Slider(ThickOffsetProp,0f,2f, _styles.ThickOffset);
+            EditorGUILayout.BeginHorizontal();
+            // EditorGUILayout.PropertyField(ThicknessRemapMinProp, new GUIContent("Thickness Remap Min"));
+            // EditorGUILayout.PropertyField(ThicknessRemapMaxProp, new GUIContent("Thickness Remap Max"));
+            EditorGUILayout.MinMaxSlider(_styles.ProfileThicknessRemap, ref asset.ThicknessRemapMin,
+                ref asset.ThicknessRemapMax, 0f, 2f);
+            EditorGUILayout.EndHorizontal();
             EditorGUILayout.PropertyField(worldScaleProp, _styles.ProfileWorldScale);
 
 
@@ -123,7 +124,7 @@ namespace Garena.TA.SSS
             DrawTexture2DPreview("Disc Kernel", asset.discKernelTex);
 
             if (_kernelNeedsUpdate)
-                EditorGUILayout.HelpBox("Burley parameters changed. Click update to rebuild Disc Kernel textures.",
+                EditorGUILayout.HelpBox("采样核的参数被改变，需要重新生成采样核贴图.",
                     MessageType.Warning);
 
             if (GUILayout.Button("Update Disc Kernel Texture"))
@@ -318,8 +319,8 @@ namespace Garena.TA.SSS
                 "光线从表面进入后，散射的弦长，以毫米为单位。这个值越大，散射越明显，物体看起来越厚重。");
 
 
-            public readonly GUIContent ProfileMinMaxThickness = new("Thickness Remap Values (Min-Max)",
-                "Shows the values of the thickness remap below (in millimeters).");
+            public readonly GUIContent ThickOffset = new("光照偏移值(背光的偏移)",
+                "展示如何表现厚边缘");
 
             public readonly GUIContent ProfileThicknessRemap = new("厚度重采样 (最小-最大)",
                 "重新采样厚度空间从 [0, 1] (in millimeters).");

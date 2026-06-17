@@ -23,8 +23,9 @@ namespace Garena.TA.SSS
         [SerializeField] public Color TransmissionTint;
         [SerializeField] public float ThicknessRemapMin;
         [SerializeField] public float ThicknessRemapMax;
-
+        [SerializeField] public float ThickOffset=0f;
         
+        //=======================intpu =================================
         [HideInInspector] [SerializeField] public int InputDiscSampleCount = 32;
         [HideInInspector] [SerializeField] public float InputMaxRadius = 15f;
         [HideInInspector] [SerializeField] public Vector4 InputShape = Vector4.zero;
@@ -35,6 +36,9 @@ namespace Garena.TA.SSS
         [HideInInspector][SerializeField] public float InputFresnelScale;
         [HideInInspector]  [SerializeField] public Vector3 InputTransmissionTint;
         [HideInInspector] [SerializeField] public Vector4 InputThicknessRemap;
+        [HideInInspector] [SerializeField] public float InputThickOffset;
+
+        
         
         [Header("Generated Textures")] public Texture2D discKernelTex;
         public RenderTexture discPreviewTexture;
@@ -75,6 +79,7 @@ namespace Garena.TA.SSS
             InputFresnelScale = FresnelScale;
             InputTransmissionTint = new Vector3(TransmissionTint.linear.r, TransmissionTint.linear.g, TransmissionTint.linear.b);
             InputThicknessRemap =new Vector4(ThicknessRemapMin,ThicknessRemapMax,0,0) ;
+            InputThickOffset = ThickOffset;
             
         }
 

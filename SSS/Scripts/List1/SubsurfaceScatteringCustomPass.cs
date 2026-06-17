@@ -21,8 +21,8 @@ namespace Garena.TA.SSS
         public bool remultiplyAlbedo = true; // 散射后乘回反照率(= 最终漫反射颜色)
 
         public DiffusionProfileParam Profile;
-        
 
+        public bool DebugViewSubsurfaceLight = false;
         // ---------------- 内部资源 ----------------
         RTHandle _diffuseRT; // rgb = 漫反射辐照度, a = coverage
         RTHandle _albedoRT; // rgb = 反照率
@@ -52,8 +52,12 @@ namespace Garena.TA.SSS
 
             public static readonly int _ThicknessRemap = Shader.PropertyToID("_Knight_ThicknessRemap");
             public static readonly int _TransmissionTint = Shader.PropertyToID("_TransmissionTint");
+            public static readonly int ThickOffset = Shader.PropertyToID("_ThickOffset");
+            
             public static readonly int ScatterResult = Shader.PropertyToID("_SSSScatterResult");
             
+            
+            public static readonly int _Fresnel0 = Shader.PropertyToID("_Fresnel0");
             
             
         }
@@ -172,7 +176,10 @@ namespace Garena.TA.SSS
             
             cmd.SetGlobalVector(SID.Shape, Profile.InputShape);
             cmd.SetGlobalVector(SID._ThicknessRemap,Profile.InputThicknessRemap);
+            cmd.SetGlobalFloat(SID.ThickOffset,Profile.InputThickOffset);
+            cmd.SetGlobalFloat(SID._Fresnel0,Profile.InputFresnel0);
             cmd.SetGlobalVector(SID._TransmissionTint,Profile.InputTransmissionTint);
+    
         }
 
         // -------------------------------------------------------------------------
@@ -250,7 +257,18 @@ namespace Garena.TA.SSS
         {
             _scatterMat.SetTexture(SID.Albedo, _albedoRT);
             _scatterMat.SetTexture(SID.ScatterResult, _lightingRT);
-
+            if (DebugViewSubsurfaceLight)
+            {
+                _scatterMat.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
+                _scatterMat.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
+                _scatterMat.renderQueue = (int)RenderQueue.Transparent;
+            }
+            else
+            {
+                _scatterMat.SetInt("_SrcBlend", (int)BlendMode.One);
+                _scatterMat.SetInt("_DstBlend", (int)BlendMode.One);
+                _scatterMat.renderQueue = (int)RenderQueue.Transparent;
+            }
             CoreUtils.DrawFullScreen(ctx.cmd, _scatterMat, ctx.cameraColorBuffer, ctx.propertyBlock, kPassComposite);
         }
 

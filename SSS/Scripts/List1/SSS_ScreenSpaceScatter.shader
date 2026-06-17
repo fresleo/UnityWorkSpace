@@ -107,12 +107,15 @@ Shader "Hidden/ScreenSpaceScatter"
         }
 
         // ------------------------------------------------------------------ //
+
         Pass
         {
+            
             Name "SSSComposite"
 
-            Blend One One
+            Blend [_SrcBlend] [_DstBlend]
             HLSLPROGRAM
+            
             #pragma vertex Vert
             #pragma fragment FragComposite
             #pragma target 4.5
