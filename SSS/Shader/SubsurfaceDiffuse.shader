@@ -123,7 +123,7 @@ Shader "Hidden/SubsurfaceDiffuse"
                 subsurfaceLight.NormalWS = NormalWS;
                 subsurfaceLight.uv = packedInput.uv1.xy;
                 subsurfaceLight.PositionWS = PositionWS;
-                subsurfaceLight.
+                subsurfaceLight.PositionRWS = input.positionRWS;
                 subsurfaceLight.viewDir = V;
                 DirectLightSSS(subsurfaceLight, DirectDiffuse);
 

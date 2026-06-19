@@ -91,7 +91,7 @@ float3 ComputeBilateralWeightLUT(float r2D_mm, float relZ,
     float zMm = relZ * mmPerUnit;//深度赋予权重
     float r3D = sqrt(r2D_mm * r2D_mm + zMm * zMm);
     
-    float3 sd = S / d;   // 合并系数，EvaluateBurley 里的 s/d
+    float3 sd = S * rcp(d) ;   // 合并系数，EvaluateBurley 里的 s/d
     float3 exp_13_3D = exp2(LOG2_E * (-1.0/3.0) * r3D * sd);
     float3 expSum_3D = exp_13_3D * (1 + exp_13_3D * exp_13_3D);
     float3 exp_13_2D = exp2(LOG2_E * (-1.0/3.0) * r2D_mm * sd);

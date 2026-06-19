@@ -24,8 +24,8 @@
 float _ThickOffset;
 float3 _TransmissionTint;
 float2 _Knight_ThicknessRemap;
-float3 _ShapeParams;
-
+float4 _ShapeParams;
+float _KnightThicknessMap;
 
 float _Smoothness;
 float _Fresnel0;
@@ -37,13 +37,14 @@ struct DirectSufsurfaceLighting
     float Thickness;
     float3 NormalWS;
     float3 PositionWS;
+    float3 PositionRWS;
     float3 viewDir;
     float2 uv;
 };
 
 float3 ComputeTransmittanceProfile(float thickness, float3 S)
 {
-    float3 transmittance = exp(-thickness * S);
+    float3 transmittance = max(exp(-thickness * S),0.001) ;
     return transmittance * _TransmissionTint;
 }
 
@@ -72,32 +73,42 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
     // float3 backColor = (1 - TransmitFactor) * sufsurfaceLighting.Albedo * _TransmissionTint;
 
     float Thickness = max(0, sufsurfaceLighting.Thickness);
-    Thickness = 1;
     // half4 colorGama = IsGammaSpace() ? half4(0.5019608, 0.5019608, 1, 0) : half4(0.2158605, 0.2158605, 1, 0);
 
-    float t = lerp(_Knight_ThicknessRemap.x, _Knight_ThicknessRemap.y, TransmitFactor);
+    float t = lerp(_Knight_ThicknessRemap.x, _Knight_ThicknessRemap.y, (NDL +1) *.5);
     //计算公式
     // float test = ComputeTransmittanceProfile(t, _ShapeParams);
 
+    float3 S = float3(_ShapeParams.w * rcp(_ShapeParams.x), _ShapeParams.w * rcp(_ShapeParams.y),
+                      _ShapeParams.w * rcp(_ShapeParams.z)); //d/s
     float3 Transmist = sufsurfaceLighting.Albedo * saturate(
-            Thickness * ComputeTransmittanceProfile(t, _ShapeParams) * (NDL * 0.85 + 0.27)) +
-        saturate(Thickness * ComputeTransmittanceProfile(t, _ShapeParams) * (1 - TransmitFactor));
+            Thickness * ComputeTransmittanceProfile(t, S) * (NDL * 0.85 + 0.27)) +
+        saturate(Thickness * ComputeTransmittanceProfile(t, S) * (1 - TransmitFactor));
 
-  
-    
+    float3 tt = exp(-t * S)* _TransmissionTint;
+    float3 TestColor1 = float3(tt.x,tt.y,0.001);
+    float3 TestColor = ComputeTransmittanceProfile(t, S);
+
     //===================fresnel (模仿光滑表面)============================
 
-    float3 viewXDirWS = normalize(mul(_InvViewMatrix, float4(0, 0, 0,1)).xyz - sufsurfaceLighting.PositionRWS);
+    // float3 viewXDirWS = normalize(mul(_InvViewMatrix, float4(0, 0, 0,1)).xyz - sufsurfaceLighting.PositionRWS);
+    float4 virtualViewDirVS = float4(.05, -0.02, 1.0, 0.0);
+    float3 viewXDirWS = normalize(mul(_InvViewMatrix, virtualViewDirVS).xyz);
+    float NDV = saturate(dot(viewXDirWS, sufsurfaceLighting.NormalWS));
 
-    float NDV = dot(viewXDirWS, sufsurfaceLighting.NormalWS);
     // NDV =(NDV +1)*.5;
-    half3 fresnelTerm = F_Schlick(_Fresnel0, NDV);
-    fresnelTerm *= _Smoothness;
-    fresnelTerm = 1 - fresnelTerm;
+    half3 fresnelTerm = saturate(F_Schlick(_Fresnel0, NDV)) * _Smoothness;
 
-    float3 final = Transmist * fresnelTerm + (1 - fresnelTerm);
-    
-    DirectDiffuse =float3(1-fresnelTerm) ;
+    float distanceToCamera = length(sufsurfaceLighting.PositionRWS);
+
+    float distanceFade = smoothstep(0, 2.0, distanceToCamera);
+
+    fresnelTerm *= distanceFade;
+
+    float3 final = Transmist * (1 - fresnelTerm) + fresnelTerm;
+
+
+    DirectDiffuse = float3(TestColor);
 }
 
 

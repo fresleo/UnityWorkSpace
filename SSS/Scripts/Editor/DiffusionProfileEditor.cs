@@ -101,7 +101,7 @@ namespace Garena.TA.SSS
             // EditorGUILayout.PropertyField(ThicknessRemapMinProp, new GUIContent("Thickness Remap Min"));
             // EditorGUILayout.PropertyField(ThicknessRemapMaxProp, new GUIContent("Thickness Remap Max"));
             EditorGUILayout.MinMaxSlider(_styles.ProfileThicknessRemap, ref asset.ThicknessRemapMin,
-                ref asset.ThicknessRemapMax, 0f, 2f);
+                ref asset.ThicknessRemapMax, 0f, 50f);
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.PropertyField(worldScaleProp, _styles.ProfileWorldScale);
 
@@ -194,7 +194,6 @@ namespace Garena.TA.SSS
         private void DrawTransmistPreview(DiffusionProfileParam asset)
         {
             var mat = GetOrCreateTransmitMaterial();
-            mat.SetVector("_ShapeParams", asset.InputShape / asset.InputShape.w);
             mat.SetVector("_TransmissionTint", asset.InputTransmissionTint);
             mat.SetVector("_ThicknessRemap", asset.InputThicknessRemap);
             // Thickness remap is edited via the Thickness Remap Min/Max properties above in the inspector.

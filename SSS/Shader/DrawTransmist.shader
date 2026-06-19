@@ -8,19 +8,19 @@ Shader "Hidden/DrawTransmittance"
         }
         Pass
         {
-            Cull   Off
-            ZTest  Always
+            Cull Off
+            ZTest Always
             ZWrite Off
-            Blend  Off
+            Blend Off
 
             CGPROGRAM
             #pragma editor_sync_compilation
             #pragma target 4.5
             #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
-            
+
             #pragma vertex vert
             #pragma fragment frag
-            
+
             #include "UnityCG.cginc"
 
             //-------------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ Shader "Hidden/DrawTransmittance"
             //-------------------------------------------------------------------------------------
             // Implementation
             //-------------------------------------------------------------------------------------
-            
+
             struct appdata
             {
                 float4 vertex : POSITION;
@@ -44,8 +44,8 @@ Shader "Hidden/DrawTransmittance"
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
             };
-            
-            v2f vert (appdata v)
+
+            v2f vert(appdata v)
             {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
@@ -58,13 +58,21 @@ Shader "Hidden/DrawTransmittance"
                 float3 transmittance = exp(-thickness * S);
                 return transmittance * _TransmissionTint;
             }
-            
-            fixed4 frag (v2f i) : SV_Target
+
+            fixed4 frag(v2f i) : SV_Target
             {
                 float thickness = lerp(_ThicknessRemap.x, _ThicknessRemap.y, i.uv.x);
-                float3 transmittance = ComputeTransmittanceProfile(thickness, _ShapeParams);
-                
+      
+                float3 Shape = float3(_ShapeParams.w * rcp(_ShapeParams.x), _ShapeParams.w * rcp(_ShapeParams.y),
+                      _ShapeParams.w * rcp(_ShapeParams.z));
+                float3 transmittance = ComputeTransmittanceProfile(thickness, Shape);
+
+                #if defined(UNITY_COLORSPACE_GAMMA)
                 return float4(transmittance, 1);
+                #else
+                // Linear 模式下，为了让 GUI 正确显示，手动将其转换成 sRGB
+                return float4(LinearToGammaSpace(transmittance), 1);
+                #endif
             }
             ENDCG
         }
