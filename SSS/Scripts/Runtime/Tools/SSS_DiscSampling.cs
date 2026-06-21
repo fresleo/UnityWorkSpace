@@ -119,9 +119,9 @@ namespace Garena.TA.SSS
             Vector3 d = burleyParameters.GetMeanFreePath();
 
             Vector3 s = new Vector3(
-                ShapeParam(A.x),
-                ShapeParam(A.y),
-                ShapeParam(A.z));
+                BurleyFunction.ShapeParam(A.x),
+                BurleyFunction.ShapeParam(A.y),
+                BurleyFunction.ShapeParam(A.z));
 
             r = Mathf.Max(r, 1e-5f);
 
@@ -131,12 +131,7 @@ namespace Garena.TA.SSS
                 A.z * (Mathf.Exp(-s.z * r / d.z) + Mathf.Exp(-s.z * r / (3.0f * d.z))) / (8.0f * Mathf.PI * d.z * r));
         }
 
-        private static float ShapeParam(float a)
-        {
-            float diff = a - 0.8f;
-            float s = 1.85f - a + 7.0f * diff * diff * diff;
-            return Mathf.Max(1e-3f, s);  // 保证恒正
-        }
+
 
         /// <summary>逆 CDF 查找：给定 ξ∈[0,1] 返回对应半径（线性插值）。</summary>
         private static float InverseCdf(float[] cdf, float xi, float maxRadius)

@@ -46,12 +46,7 @@ namespace Garena.TA.SSS
         public uint hash;
         
 
-        private static float ShapeParam(float a)
-        {
-            float diff = a - 0.8f;
-            float s = 1.85f - a + 7.0f * diff * diff * diff;
-            return Mathf.Clamp(s, 1e-3f, 1.35f);
-        }
+
 
         public float GetMeanFreePath(float _maxRadius)
         {
@@ -68,9 +63,9 @@ namespace Garena.TA.SSS
             Input_d = GetMeanFreePath(maxRadius);
             InputWroldScale = worldScale;
             InputShape = new Vector4(
-                ShapeParam(s.x),
-                ShapeParam(s.y),
-                ShapeParam(s.z),
+                BurleyFunction.ShapeParam(s.x),
+                BurleyFunction.ShapeParam(s.y),
+                BurleyFunction.ShapeParam(s.z),
                 Input_d
             );
             

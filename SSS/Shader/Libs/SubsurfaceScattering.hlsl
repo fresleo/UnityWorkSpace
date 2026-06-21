@@ -36,6 +36,19 @@ float _MaxRadius;
 float _WorldScale;
 uint _DiscKernelCount;
 //--------------------------------------end =---------------------------------
+
+
+
+//==============================debug========================================
+RW_TEXTURE2D_X(float4, _SSSDebugOutput);
+
+void StoreDebug(uint2 pixelCoord, float4 value)
+{
+    _SSSDebugOutput[COORD_TEXTURE2D_X(pixelCoord)] = value;
+}
+
+
+
 //检查是否需要sss
 bool TestLightingForSSS(float3 subsurfaceLighting)
 {
@@ -63,13 +76,6 @@ float4 LoadSampleFromCacheMemory(int2 cacheCoord)
 }
 
 
-float4 LoadSampleFromVideoMemory(int2 pixelCoord)
-{
-    int2 p = clamp(pixelCoord, 0, (int2)_ScreenSize.xy - 1);
-    float3 irradiance = LOAD_TEXTURE2D_X(_SSSDiffuse, p).rgb;
-    float  depth = LoadCameraDepth(p);       // ← 去掉 * _RTHandleScale.xy
-    return float4(irradiance, depth);
-}
 
 float4 LoadSample(int2 pixelCoord, int2 cacheOffset)
 {
@@ -110,7 +116,7 @@ void EvaluateSample(uint i, uint n, int2 pixelCoord,
 {
     float4 kernel = _SSSDiscKernel.Load(int3(i+0.5, 0, 0)); //当前lut的第几像素，相当于pdf
     float3 lutWeight = kernel.rgb;
-    float r = kernel.a;
+    float r = kernel.a * MILLIMETERS_PER_METER;
 
     // 2. 角度 + per-pixel phase 抖动(黄金角)
     float sinPhase, cosPhase;
@@ -122,7 +128,7 @@ void EvaluateSample(uint i, uint n, int2 pixelCoord,
     float sinPsi = cosPhase * sinPhi + sinPhase * cosPhi;
     float cosPsi = cosPhase * cosPhi - sinPhase * sinPhi;
     // 3. 采样位置
-    float2 position = pixelCoord + (int2)round(pixelsPerMm * r * float2(cosPsi, sinPsi));
+    float2 position = pixelCoord + (int2)round(pixelsPerMm * r * float2(cosPsi, sinPsi));//r半径对应的像素点
     float4 textureSample = LoadSample(position, cacheOffset);
     float3 irradiance = textureSample.rgb;
 

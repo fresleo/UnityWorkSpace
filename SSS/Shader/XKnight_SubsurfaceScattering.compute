@@ -28,14 +28,14 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
     //---------------------------屏幕分布点(morton z-order)----------------------------------
     groupThreadId &= GROUP_SIZE_2D - 1;
 
-    uint waveIndex = WaveReadLaneFirst(groupThreadId / 64);
+    uint waveIndex = WaveReadLaneFirst(groupThreadId / 64);//强制这个值在整个 wave 内统一
     uint laneIndex = groupThreadId % 64; // 线程在当前 wave 中的编号
     uint quadIndex = laneIndex / 4;
 
     //ps:由于morton将像素块变成了16*16的一个个小块，小块中又有16个（小小块）
     //所以总数为(groupId.xy * GROUP_SIZE_1D+groupOffset)
-    uint2 groupCoord = DecodeMorton2D(groupThreadId); //morton
-    uint2 groupOffset = groupId.xy * GROUP_SIZE_1D; //总像素
+    uint2 groupCoord = DecodeMorton2D(groupThreadId); //morton，x:16×y:16
+    uint2 groupOffset = groupId.xy * GROUP_SIZE_1D; //上一个包的tile的总像素
 
     //加上小小块的索引
     uint2 pixelCoord = groupOffset + groupCoord;
@@ -53,6 +53,14 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
         //设备深度是反向的，越远的物体深度值越大，近处物体深度值越小。Unity 的深度值经过了非线性变换，不能直接使用，需要线性化处理。
         centerDepth = LoadCameraDepth(sCoord);
     }
+    // ==================================debug =================================
+    float dbgLinear = (centerDepth > 0.0) ? LinearEyeDepth(centerDepth, _ZBufferParams) : 0.0;
+    StoreDebug(pixelCoord, float4(
+        dbgLinear,                  // .x  raw device depth (reversed-Z, 近=1 远=0)
+        dbgLinear,                    // .y  线性视空间深度 (场景单位, 距相机距离)
+        dbgLinear,// .z  是否过了 stencil (是否是 SSS 像素)
+        1.0));
+    
     //----------------------------------------缓存像素点----------------------------------------------
 
     uint2 cacheCoord = groupCoord + TEXTURE_CACHE_BORDER;
@@ -157,25 +165,25 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
     float3 S = _ShapeParams.rgb;
     float d = _ShapeParams.a;
     float metersPerUnit = _WorldScale;
-    float filterRadius = _MaxRadius;
+    float filterRadius = _MaxRadius * MILLIMETERS_PER_METER;
 
     float2 centerPosNDC = posInput.positionNDC;
 
     float2 cornerPosNDC = centerPosNDC + 0.5 * _ScreenSize.zw;
-
+    
+    //把一个屏幕空间点（NDC 坐标 + 深度值）还原成相机空间（View Space）的 3D 坐标
     float3 centerPosVS = ComputeViewSpacePosition(centerPosNDC, centerDepth, _InvProjMatrix);
     float3 cornerPosVS = ComputeViewSpacePosition(cornerPosNDC, centerDepth, _InvProjMatrix);
 
     float mmPerUnit = MILLIMETERS_PER_METER * metersPerUnit;
     float unitsPerMm = rcp(mmPerUnit); //sss的毫米数
 
-    // 计算一个像素点偏离的几何距离，结果：1毫米有多少像素
+    // 投影矩阵的透视特性（远处数值大，近处数值小）
     float unitsPerPixel = max(0.0001f, 2 * abs(cornerPosVS.x - centerPosVS.x)); //毫米数，单位units/pixel
-    //    单位：pixel/mm    单位：pixel/units  单位:units/mm  ：一毫米对应多少像素
+    //    单位：pixel/mm    单位：pixel/units  单位: units / mm     ：一毫米对应多少像素（远处数值小，近处数值大）
     float pixelsPerMm = rcp(unitsPerPixel) * unitsPerMm;
 
-    // filterRadius是散射半径（mm单位）转换成像素单位
-    //圆面积公式 π × r²
+    // filterRadius是散射半径（mm单位）转换成像素单位（像素半径）
     float filterArea = PI * Sq(filterRadius * pixelsPerMm);
     uint sampleCount = (uint)(filterArea * rcp(SSS_PIXELS_PER_SAMPLE));
 
@@ -185,6 +193,7 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
     //什么情况下 sampleCount < 1
     //1：filterArea 很小  →  散射圆覆盖像素数极少 ，说明这个像素的散射半径在屏幕上小于1个像素
     //2：物体离摄像机很远  →  pixelsPerMm 很小  →  散射圆退化成不足1像素
+    //优化
     if (sampleCount < 1)
     {
         StoreResult(pixelCoord, albedo * centerIrradiance);

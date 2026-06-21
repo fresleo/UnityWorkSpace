@@ -6,20 +6,41 @@
 //            3.阴影 
 //            4.表面散射
 
+// haven't defined param: _ThickOffset , sufsurfaceLighting.Thickness
 
 #ifndef _SUBSURFACELIGHTING_HLSL
 #define _SUBSURFACELIGHTING_HLSL
 
+// 显式指定阴影分级，防止打包时算法未定义
+#ifndef SHADOW_HIGH
+#define SHADOW_HIGH 1
+#endif
 
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-#include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
+#ifndef PUNCTUAL_SHADOW_HIGH
+#define PUNCTUAL_SHADOW_HIGH 1
+#endif
 
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
-#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightDefinition.cs.hlsl"
+#ifndef DIRECTIONAL_SHADOW_HIGH
+#define DIRECTIONAL_SHADOW_HIGH 1
+#endif
+
+#ifndef AREA_SHADOW_HIGH
+#define AREA_SHADOW_HIGH 1
+#endif
+
 #define HALF_MIN 6.103515625e-5
 
 
-// haven't defined param: _ThickOffset , sufsurfaceLighting.Thickness
+// #pragma multi_compile SCREEN_SPACE_SHADOWS_OFF SCREEN_SPACE_SHADOWS_ON
+
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightDefinition.cs.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/Lighting.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/LightLoopDef.hlsl"
+
+
 
 float _ThickOffset;
 float3 _TransmissionTint;
@@ -27,6 +48,7 @@ float2 _Knight_ThicknessRemap;
 float4 _ShapeParams;
 float _KnightThicknessMap;
 
+TEXTURE2D(_TempSSSDiscKernel);
 float _Smoothness;
 float _Fresnel0;
 
@@ -38,27 +60,55 @@ struct DirectSufsurfaceLighting
     float3 NormalWS;
     float3 PositionWS;
     float3 PositionRWS;
+    float4 positionCS;
     float3 viewDir;
     float2 uv;
 };
 
 float3 ComputeTransmittanceProfile(float thickness, float3 S)
 {
-    float3 transmittance = max(exp(-thickness * S),0.001) ;
+    float3 transmittance = max(exp(-thickness * S), 0.001);
     return transmittance * _TransmissionTint;
 }
 
-real F_Schlick(real f0, real f90, real u)
+float3 SampleTransmitTexture(float map_01)
 {
-    real x = 1.0 - u;
-    real x2 = x * x;
-    real x5 = x * x2 * x2;
-    return (f90 - f0) * x5 + f0;
+    float3 S = float3(_ShapeParams.w * rcp(_ShapeParams.x), _ShapeParams.w * rcp(_ShapeParams.y),
+                      _ShapeParams.w * rcp(_ShapeParams.z)); //d/s
+    float t = lerp(_Knight_ThicknessRemap.x, _Knight_ThicknessRemap.y, saturate(map_01));
+    return ComputeTransmittanceProfile(t, S);
 }
 
-real F_Schlick(real f0, real u)
+
+float GetShadowAttenuation(DirectSufsurfaceLighting posInput)
 {
-    return F_Schlick(f0, 1.0, u);
+    DirectionalLightData lightData = _DirectionalLightDatas[0];
+    float shadowAttenuation = 1.0;
+
+    if (lightData.shadowIndex < 0)
+        return shadowAttenuation;
+
+    float3 L = -lightData.forward.xyz;
+
+    #if defined(SCREEN_SPACE_SHADOWS_ON)
+    if ((lightData.screenSpaceShadowIndex & SCREEN_SPACE_SHADOW_INDEX_MASK) != INVALID_SCREEN_SPACE_SHADOW)
+    {
+       // shadowAttenuation = GetScreenSpaceShadow(posInput, lightData.screenSpaceShadowIndex);
+    }
+    else
+    #endif
+    {
+        HDShadowContext shadowContext = InitShadowContext();
+        shadowAttenuation = GetDirectionalShadowAttenuation(
+            shadowContext,
+            posInput.positionCS,
+            posInput.PositionRWS,
+            posInput.NormalWS,
+            lightData.shadowIndex,
+            L);
+    }
+
+    return shadowAttenuation;
 }
 
 void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 DirectDiffuse)
@@ -69,25 +119,24 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
     float NDL = dot(normal, lightDir);
 
 
-    half TransmitFactor = saturate((NDL * _ThickOffset + 0.5));
+    half TransmitFactor = NDL * _ThickOffset + 0.5;
     // float3 backColor = (1 - TransmitFactor) * sufsurfaceLighting.Albedo * _TransmissionTint;
 
     float Thickness = max(0, sufsurfaceLighting.Thickness);
     // half4 colorGama = IsGammaSpace() ? half4(0.5019608, 0.5019608, 1, 0) : half4(0.2158605, 0.2158605, 1, 0);
 
-    float t = lerp(_Knight_ThicknessRemap.x, _Knight_ThicknessRemap.y, (NDL +1) *.5);
+
     //计算公式
     // float test = ComputeTransmittanceProfile(t, _ShapeParams);
 
-    float3 S = float3(_ShapeParams.w * rcp(_ShapeParams.x), _ShapeParams.w * rcp(_ShapeParams.y),
-                      _ShapeParams.w * rcp(_ShapeParams.z)); //d/s
-    float3 Transmist = sufsurfaceLighting.Albedo * saturate(
-            Thickness * ComputeTransmittanceProfile(t, S) * (NDL * 0.85 + 0.27)) +
-        saturate(Thickness * ComputeTransmittanceProfile(t, S) * (1 - TransmitFactor));
 
-    float3 tt = exp(-t * S)* _TransmissionTint;
-    float3 TestColor1 = float3(tt.x,tt.y,0.001);
-    float3 TestColor = ComputeTransmittanceProfile(t, S);
+    //=====================debug Color=============
+
+    // float3 Transmist = sufsurfaceLighting.Albedo * saturate(
+    //         Thickness * ComputeTransmittanceProfile(t, S) * (NDL * 0.85 + 0.27)) +
+    //     saturate(Thickness * ComputeTransmittanceProfile(t, S) * (1 - TransmitFactor));
+
+    float3 TestColor1 = SampleTransmitTexture(TransmitFactor);
 
     //===================fresnel (模仿光滑表面)============================
 
@@ -96,6 +145,8 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
     float3 viewXDirWS = normalize(mul(_InvViewMatrix, virtualViewDirVS).xyz);
     float NDV = saturate(dot(viewXDirWS, sufsurfaceLighting.NormalWS));
 
+    //========================shadow ===========================
+    float Shadow = GetShadowAttenuation(sufsurfaceLighting);
     // NDV =(NDV +1)*.5;
     half3 fresnelTerm = saturate(F_Schlick(_Fresnel0, NDV)) * _Smoothness;
 
@@ -105,10 +156,15 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
 
     fresnelTerm *= distanceFade;
 
-    float3 final = Transmist * (1 - fresnelTerm) + fresnelTerm;
+    // float3 final = Transmist * (1 - fresnelTerm) + fresnelTerm;
 
 
-    DirectDiffuse = float3(TestColor);
+    // float4 kernel = _TempSSSDiscKernel.Load(int3(31.5, 0, 0));
+    // float3 kernelRGB = kernel.rgb;
+    // float kernela = kernel.a;
+    // float testAlpha = kernela -_ThickOffset;
+
+    DirectDiffuse = float3(Shadow, Shadow, Shadow);
 }
 
 

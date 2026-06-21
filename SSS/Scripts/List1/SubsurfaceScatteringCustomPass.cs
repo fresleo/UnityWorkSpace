@@ -7,6 +7,13 @@ using UnityEngine.Rendering.RendererUtils;
 
 namespace Garena.TA.SSS
 {
+    public enum UDebugTexture
+    {
+        Lighting,
+        Depth,
+        Albedo,
+        Diffusion
+    }
     [Serializable]
     public class SubsurfaceScatteringCustomPass : CustomPass
     {
@@ -23,18 +30,25 @@ namespace Garena.TA.SSS
         public DiffusionProfileParam Profile;
 
         public bool DebugViewSubsurfaceLight = false;
+
+        public bool DebugTexture = false;
+
+        public UDebugTexture EDebug = UDebugTexture.Albedo;
         // ---------------- 内部资源 ----------------
         RTHandle _diffuseRT; // rgb = 漫反射辐照度, a = coverage
         RTHandle _albedoRT; // rgb = 反照率
         RTHandle _lightingRT; // 散射结果（compute 需 randomWrite）
 
+
+        RTHandle m_SSSDebugRT;
+
         Material _scatterMat;
-        Material blitMaterial;
+        Material debugMat;
         int _kernelScatter = -1;
 
         RenderTargetIdentifier[] _splitMRT;
         readonly ShaderTagId[] _shaderTags = new ShaderTagId[1];
-        
+
         const int kPassComposite = 1;
 
         // ---------------- Shader 属性 ID ----------------
@@ -43,6 +57,7 @@ namespace Garena.TA.SSS
             public static readonly int Diffuse = Shader.PropertyToID("_SSSDiffuse");
             public static readonly int Albedo = Shader.PropertyToID("_SSSAlbedo");
             public static readonly int DiscKernel = Shader.PropertyToID("_SSSDiscKernel");
+            public static readonly int TempDiscKernel = Shader.PropertyToID("_TempSSSDiscKernel");
             public static readonly int Output = Shader.PropertyToID("_SubsurfaceLighting");
             public static readonly int Shape = Shader.PropertyToID("_ShapeParams");
             public static readonly int MaxRadius = Shader.PropertyToID("_MaxRadius");
@@ -53,13 +68,14 @@ namespace Garena.TA.SSS
             public static readonly int _ThicknessRemap = Shader.PropertyToID("_Knight_ThicknessRemap");
             public static readonly int _TransmissionTint = Shader.PropertyToID("_TransmissionTint");
             public static readonly int ThickOffset = Shader.PropertyToID("_ThickOffset");
-            
+
             public static readonly int ScatterResult = Shader.PropertyToID("_SSSScatterResult");
-            
-            
+
+
             public static readonly int _Fresnel0 = Shader.PropertyToID("_Fresnel0");
-            
-            
+
+            //=================================debug===========================
+            public static readonly int s_SSSDebugOutput = Shader.PropertyToID("_SSSDebugOutput");
         }
 
         const string kKeywordRemultiply = "SSS_REMULTIPLY_ALBEDO";
@@ -73,9 +89,12 @@ namespace Garena.TA.SSS
             if (scatterCompute != null)
                 _kernelScatter = scatterCompute.FindKernel("XKNightSubsurfaceScattering");
 
+            if (debugMat != null)
+                debugMat = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/XKnight/SSSDebug"));
+
             // diffuse(辐照度) + albedo：half 浮点，Point，全分辨率
             _diffuseRT = RTHandles.Alloc(
-                Vector2.one, slices: TextureXR.slices, dimension: TextureXR.dimension,  
+                Vector2.one, slices: TextureXR.slices, dimension: TextureXR.dimension,
                 colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                 filterMode: FilterMode.Point, wrapMode: TextureWrapMode.Clamp,
                 useDynamicScale: true, name: "_SSSDiffuse");
@@ -91,6 +110,11 @@ namespace Garena.TA.SSS
                 colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                 filterMode: FilterMode.Point, wrapMode: TextureWrapMode.Clamp,
                 enableRandomWrite: true, useDynamicScale: true, name: "_SSSLighting");
+
+            m_SSSDebugRT = RTHandles.Alloc(
+                Vector2.one, TextureXR.slices, dimension: TextureXR.dimension,
+                colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
+                enableRandomWrite: true, useDynamicScale: true, name: "_SSSDebugOutput");
 
             _splitMRT = new RenderTargetIdentifier[2];
 
@@ -141,6 +165,16 @@ namespace Garena.TA.SSS
 
             // ---- Stage 3: Composite (加法叠加回相机颜色) ----
             RenderComposite(ctx, w, h);
+
+            CoreUtils.SetRenderTarget(ctx.cmd, _lightingRT, ctx.cameraDepthBuffer,
+                ClearFlag.Color, Color.clear);
+
+            if (DebugTexture)
+            {
+                DrawDebugTexture(ctx);
+                CoreUtils.SetRenderTarget(ctx.cmd, m_SSSDebugRT, ctx.cameraDepthBuffer,
+                    ClearFlag.Color, Color.clear);
+            }
         }
 
         // -------------------------------------------------------------------------
@@ -149,6 +183,12 @@ namespace Garena.TA.SSS
             if (Profile == null) return false;
             if (_scatterMat == null && scatterShader != null)
                 _scatterMat = CoreUtils.CreateEngineMaterial(scatterShader);
+            if (DebugTexture)
+            {
+                if (debugMat == null)
+                    debugMat = CoreUtils.CreateEngineMaterial("Hidden/XKnight/SSSDebug");
+            }
+
             return _scatterMat != null;
         }
 
@@ -157,12 +197,12 @@ namespace Garena.TA.SSS
             if (handle != null && handle.rt.width == w && handle.rt.height == h) return;
 
             handle?.Release();
-            
+
             handle = RTHandles.Alloc(
                 w, h, slices: TextureXR.slices, dimension: TextureXR.dimension,
                 colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                 filterMode: FilterMode.Point, wrapMode: TextureWrapMode.Clamp,
-                enableRandomWrite: true, useDynamicScale: true,  name: handle?.name ?? "_SSSTemp");
+                enableRandomWrite: true, useDynamicScale: true, name: handle?.name ?? "_SSSTemp");
         }
 
         void PushGlobals(CommandBuffer cmd)
@@ -171,15 +211,15 @@ namespace Garena.TA.SSS
             Debug.Log("MaxRadius:" + Profile.InputMaxRadius.ToString());
             Debug.Log("WorldScale:" + Profile.InputWroldScale.ToString());
             Debug.Log(("DiscSampleCount:" + Profile.InputDiscSampleCount.ToString()));
-            Debug.Log("Profile.InputShape:"+Profile.InputShape);
-            Debug.Log("Profile.InputThicknessRemap:"+Profile.InputThicknessRemap);
-            
+            Debug.Log("Profile.InputShape:" + Profile.InputShape);
+            Debug.Log("Profile.InputThicknessRemap:" + Profile.InputThicknessRemap);
+
+            cmd.SetGlobalTexture(SID.TempDiscKernel, Profile.discKernelTex);
             cmd.SetGlobalVector(SID.Shape, Profile.InputShape);
-            cmd.SetGlobalVector(SID._ThicknessRemap,Profile.InputThicknessRemap);
-            cmd.SetGlobalFloat(SID.ThickOffset,Profile.InputThickOffset);
-            cmd.SetGlobalFloat(SID._Fresnel0,Profile.InputFresnel0);
-            cmd.SetGlobalVector(SID._TransmissionTint,Profile.InputTransmissionTint);
-    
+            cmd.SetGlobalVector(SID._ThicknessRemap, Profile.InputThicknessRemap);
+            cmd.SetGlobalFloat(SID.ThickOffset, Profile.InputThickOffset);
+            cmd.SetGlobalFloat(SID._Fresnel0, Profile.InputFresnel0);
+            cmd.SetGlobalVector(SID._TransmissionTint, Profile.InputTransmissionTint);
         }
 
         // -------------------------------------------------------------------------
@@ -221,12 +261,14 @@ namespace Garena.TA.SSS
             cmd.SetComputeTextureParam(scatterCompute, _kernelScatter, SID.DiscKernel, Profile.discKernelTex);
             cmd.SetComputeTextureParam(scatterCompute, _kernelScatter, SID.Output, _lightingRT);
 
-            
 
             cmd.SetComputeFloatParam(scatterCompute, SID.WorldScale, Profile.InputWroldScale);
-            cmd.SetComputeIntParam(scatterCompute, SID.KernelCount, Profile.InputDiscSampleCount);
+            cmd.SetComputeIntParam(scatterCompute, SID.KernelCount, Profile.InputDiscSampleCount - 1);
             cmd.SetComputeVectorParam(scatterCompute, SID.Shape, Profile.InputShape);
             cmd.SetComputeFloatParam(scatterCompute, SID.MaxRadius, Profile.InputMaxRadius);
+            //debug
+            cmd.SetComputeTextureParam(scatterCompute, _kernelScatter, SID.s_SSSDebugOutput, m_SSSDebugRT);
+
             int tx = (w + 15) / 16;
             int ty = (h + 15) / 16;
             var numTilesZ = 1;
@@ -253,6 +295,34 @@ namespace Garena.TA.SSS
         //     CoreUtils.DrawFullScreen(ctx.cmd, _scatterMat, _lightingRT, ctx.propertyBlock, kPassScatterFallback);
         // }
         // -------------------------------------------------------------------------
+
+        void DrawDebugTexture(CustomPassContext ctx)
+        {
+            RTHandle TestRT;
+            switch (EDebug)
+            {
+                case UDebugTexture.Albedo:
+                    TestRT = _albedoRT;
+                    break;
+                case UDebugTexture.Depth:
+                    TestRT = m_SSSDebugRT;
+                    break;
+                case UDebugTexture.Diffusion:
+                    TestRT = _diffuseRT;
+                    break;
+                case UDebugTexture.Lighting:
+                    TestRT = _lightingRT;
+                    break;
+                default:
+                    TestRT = m_SSSDebugRT;
+                    break;
+            }
+            debugMat.SetTexture(SID.s_SSSDebugOutput, TestRT);
+            debugMat.SetFloat("_DebugChannel", 0);
+            debugMat.SetFloat("_DepthScale", 0.1f);
+            CoreUtils.DrawFullScreen(ctx.cmd, debugMat, ctx.cameraColorBuffer, shaderPassId: 0);
+        }
+
         void RenderComposite(CustomPassContext ctx, int w, int h)
         {
             _scatterMat.SetTexture(SID.Albedo, _albedoRT);
@@ -269,6 +339,7 @@ namespace Garena.TA.SSS
                 _scatterMat.SetInt("_DstBlend", (int)BlendMode.One);
                 _scatterMat.renderQueue = (int)RenderQueue.Transparent;
             }
+
             CoreUtils.DrawFullScreen(ctx.cmd, _scatterMat, ctx.cameraColorBuffer, ctx.propertyBlock, kPassComposite);
         }
 

@@ -12,14 +12,7 @@ namespace Garena.TA.SSS
         public float weightR = 1f, weightG = 1f, weightB = 1f;
         public float sigmaR = 1.5f, sigmaG = 0.8f, sigmaB = 0.4f;
     }
-
-    //-----------Diffusion Profile类型----------
-    public enum ProfileType
-    {
-        MultiGaussian,   // 多高斯
-        BurleyNormalized // Burley归一化
-    }
-
+    
     //----------- Burley  衰减参数 ----------
     [System.Serializable]
     public class BurleyParameters
@@ -34,6 +27,16 @@ namespace Garena.TA.SSS
         {
             float ell = _maxRadius / 3.0f;
             return new Vector3(ell, ell, ell);
+        }
+    }
+
+    public static class BurleyFunction
+    {
+        public static float ShapeParam(float a)
+        {
+            float diff = a - 0.8f;
+            float s = 1.85f - a + 7.0f * diff * diff * diff;
+            return Mathf.Clamp(s, 1e-3f, 1.35f);
         }
     }
 

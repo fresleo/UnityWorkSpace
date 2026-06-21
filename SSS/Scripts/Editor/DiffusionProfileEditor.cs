@@ -96,7 +96,7 @@ namespace Garena.TA.SSS
             EditorGUILayout.PropertyField(Fresnel0Prop, _styles.Fresnel0Prop);
             EditorGUILayout.PropertyField(FresnelScaleProp, _styles.FresnelScaleProp);
             EditorGUILayout.PropertyField(TransmissionTintProp, _styles.ProfileTransmissionTint);
-            EditorGUILayout.Slider(ThickOffsetProp,0f,2f, _styles.ThickOffset);
+            EditorGUILayout.Slider(ThickOffsetProp,0f,20f, _styles.ThickOffset);
             EditorGUILayout.BeginHorizontal();
             // EditorGUILayout.PropertyField(ThicknessRemapMinProp, new GUIContent("Thickness Remap Min"));
             // EditorGUILayout.PropertyField(ThicknessRemapMaxProp, new GUIContent("Thickness Remap Max"));
