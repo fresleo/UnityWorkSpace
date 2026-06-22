@@ -219,7 +219,6 @@ namespace Garena.TA.SSS
             asset.name = "SSSResolveProfileParams";
             asset.scatteringColor = burleyParameters._scatteringColor;
             asset.scatteringMultiplier = burleyParameters._scatteringMultiplier;
-            asset.maxRadius = burleyParameters._maxRadius;
             asset.indexOfRefraction = burleyParameters._indexOfRefraction;
             asset.worldScale = worldScale;
             asset.kernelSampleCount = discSampleCount;

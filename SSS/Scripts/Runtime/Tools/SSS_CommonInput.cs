@@ -34,9 +34,10 @@ namespace Garena.TA.SSS
     {
         public static float ShapeParam(float a)
         {
-            float diff = a - 0.8f;
-            float s = 1.85f - a + 7.0f * diff * diff * diff;
-            return Mathf.Clamp(s, 1e-3f, 1.35f);
+            // float diff = a - 0.8f;
+            // float s = 1.85f - a + 7.0f * diff * diff * diff;
+            // return Mathf.Clamp(s, 1e-3f, 1.35f);
+            return Mathf.Min(16777216, 1.0f / a);
         }
     }
 

@@ -37,7 +37,7 @@ namespace Garena.TA.SSS
             _styles ??= new Styles();
             scatteringColorProp = serializedObject.FindProperty("scatteringColor");
             scatteringMultiplierProp = serializedObject.FindProperty("scatteringMultiplier");
-            maxRadiusProp = serializedObject.FindProperty("maxRadius");
+            maxRadiusProp = serializedObject.FindProperty("InputMaxRadius");
             worldScaleProp = serializedObject.FindProperty("worldScale");
             kernelSampleCountProp = serializedObject.FindProperty("kernelSampleCount");
 
@@ -82,7 +82,7 @@ namespace Garena.TA.SSS
             {
                 EditorGUILayout.PropertyField(scatteringColorProp, _styles.ProfileScatteringColor);
                 EditorGUILayout.PropertyField(scatteringMultiplierProp, _styles.ScatteringMultiplier);
-                EditorGUILayout.PropertyField(maxRadiusProp, _styles.ProfileMaxRadius);
+                
                 EditorGUILayout.PropertyField(kernelSampleCountProp, _styles.ProfileKernelSampleCount);
                 
 
@@ -91,7 +91,7 @@ namespace Garena.TA.SSS
                     _kernelNeedsUpdate = true;
                 }
             }
-
+            EditorGUILayout.PropertyField(maxRadiusProp, _styles.ProfileMaxRadius);
             // Transmittance properties
             EditorGUILayout.PropertyField(Fresnel0Prop, _styles.Fresnel0Prop);
             EditorGUILayout.PropertyField(FresnelScaleProp, _styles.FresnelScaleProp);
@@ -101,7 +101,7 @@ namespace Garena.TA.SSS
             // EditorGUILayout.PropertyField(ThicknessRemapMinProp, new GUIContent("Thickness Remap Min"));
             // EditorGUILayout.PropertyField(ThicknessRemapMaxProp, new GUIContent("Thickness Remap Max"));
             EditorGUILayout.MinMaxSlider(_styles.ProfileThicknessRemap, ref asset.ThicknessRemapMin,
-                ref asset.ThicknessRemapMax, 0f, 50f);
+                ref asset.ThicknessRemapMax, 0f, 2000f);
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.PropertyField(worldScaleProp, _styles.ProfileWorldScale);
 

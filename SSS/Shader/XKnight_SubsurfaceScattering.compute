@@ -165,7 +165,7 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
     float3 S = _ShapeParams.rgb;
     float d = _ShapeParams.a;
     float metersPerUnit = _WorldScale;
-    float filterRadius = _MaxRadius * MILLIMETERS_PER_METER;
+    float filterRadius = _MaxRadius;
 
     float2 centerPosNDC = posInput.positionNDC;
 
@@ -188,7 +188,7 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
     uint sampleCount = (uint)(filterArea * rcp(SSS_PIXELS_PER_SAMPLE));
 
     int2 aCoord = clamp((int2)posInput.positionSS, 0, (int2)_ScreenSize.xy - 1);
-    float3 albedo = LOAD_TEXTURE2D_X(_SSSAlbedo, aCoord).rgb;
+    float3 albedo = LOAD_TEXTURE2D_X(_SSSAlbedo, pixelCoord).rgb;
 
     //什么情况下 sampleCount < 1
     //1：filterArea 很小  →  散射圆覆盖像素数极少 ，说明这个像素的散射半径在屏幕上小于1个像素
@@ -202,7 +202,7 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
 
     float phase = TWO_PI * GenerateHashedRandomFloat(uint3(pixelCoord, (uint)(centerDepth * 16777216)));
 
-    uint n = _DiscKernelCount;
+    uint n = min(sampleCount, _SssSampleBudget);
 
     float3 totalIrradiance = 0;
     float3 totalWeight = 0;
@@ -219,5 +219,6 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
     }
 
     totalWeight = max(totalWeight, FLT_MIN);
+    
     StoreResult(pixelCoord, albedo * (totalIrradiance / totalWeight));
 }

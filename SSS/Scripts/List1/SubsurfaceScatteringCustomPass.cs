@@ -63,7 +63,7 @@ namespace Garena.TA.SSS
             public static readonly int MaxRadius = Shader.PropertyToID("_MaxRadius");
             public static readonly int WorldScale = Shader.PropertyToID("_WorldScale");
             public static readonly int KernelCount = Shader.PropertyToID("_DiscKernelCount");
-
+            public static readonly int SampleBudget = Shader.PropertyToID("_SssSampleBudget");
 
             public static readonly int _ThicknessRemap = Shader.PropertyToID("_Knight_ThicknessRemap");
             public static readonly int _TransmissionTint = Shader.PropertyToID("_TransmissionTint");
@@ -264,6 +264,7 @@ namespace Garena.TA.SSS
 
             cmd.SetComputeFloatParam(scatterCompute, SID.WorldScale, Profile.InputWroldScale);
             cmd.SetComputeIntParam(scatterCompute, SID.KernelCount, Profile.InputDiscSampleCount - 1);
+            cmd.SetComputeIntParam(scatterCompute, SID.SampleBudget, 32);
             cmd.SetComputeVectorParam(scatterCompute, SID.Shape, Profile.InputShape);
             cmd.SetComputeFloatParam(scatterCompute, SID.MaxRadius, Profile.InputMaxRadius);
             //debug

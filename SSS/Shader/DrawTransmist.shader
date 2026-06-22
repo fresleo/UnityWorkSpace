@@ -63,9 +63,9 @@ Shader "Hidden/DrawTransmittance"
             {
                 float thickness = lerp(_ThicknessRemap.x, _ThicknessRemap.y, i.uv.x);
       
-                float3 Shape = float3(_ShapeParams.w * rcp(_ShapeParams.x), _ShapeParams.w * rcp(_ShapeParams.y),
-                      _ShapeParams.w * rcp(_ShapeParams.z));
-                float3 transmittance = ComputeTransmittanceProfile(thickness, Shape);
+                // float3 Shape = float3(_ShapeParams.w * rcp(_ShapeParams.x), _ShapeParams.w * rcp(_ShapeParams.y),
+                //       _ShapeParams.w * rcp(_ShapeParams.z));
+                float3 transmittance = ComputeTransmittanceProfile(thickness, float3(_ShapeParams.x,_ShapeParams.y,_ShapeParams.z));
 
                 #if defined(UNITY_COLORSPACE_GAMMA)
                 return float4(transmittance, 1);

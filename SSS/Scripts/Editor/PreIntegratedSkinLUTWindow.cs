@@ -514,7 +514,6 @@ namespace Garena.TA.SSS
 
             PreIntegrated._burleyParameters._scatteringColor = asset.scatteringColor;
             PreIntegrated._burleyParameters._scatteringMultiplier = asset.scatteringMultiplier;
-            PreIntegrated._burleyParameters._maxRadius = asset.maxRadius;
             PreIntegrated._burleyParameters._indexOfRefraction = asset.indexOfRefraction;
 
             _indexOfRefraction = asset.indexOfRefraction;

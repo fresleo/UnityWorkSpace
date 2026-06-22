@@ -4,14 +4,15 @@ Shader "HDRP/Lit"
     {
         // Following set of parameters represent the parameters node inside the MaterialGraph.
         // They are use to fill a SurfaceData. With a MaterialGraph this should not exist.
-
+        _KnightThicknessMap("KnightThicknessMap", 2D) = "Black" {}
+        _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
         // Reminder. Color here are in linear but the UI (color picker) do the conversion sRGB to linear
         [MainColor] _BaseColor("BaseColor", Color) = (1,1,1,1)
         [MainTexture] _BaseColorMap("BaseColorMap", 2D) = "white" {}
         [HideInInspector] _BaseColorMap_MipInfo("_BaseColorMap_MipInfo", Vector) = (0, 0, 0, 0)
 
         _Metallic("_Metallic", Range(0.0, 1.0)) = 0
-        _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
+
         _MaskMap("MaskMap", 2D) = "white" {}
         _MetallicRemapMin("MetallicRemapMin", Float) = 0.0
         _MetallicRemapMax("MetallicRemapMax", Float) = 1.0
@@ -1325,5 +1326,5 @@ Shader "HDRP/Lit"
     }
 
     FallBack "Hidden/HDRP/FallbackError"
-    CustomEditor "Rendering.HighDefinition.LitGUI"
+//    CustomEditor "Rendering.HighDefinition.LitGUI"
 }
