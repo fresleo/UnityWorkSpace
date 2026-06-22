@@ -755,7 +755,7 @@ PrefabInstance:
     - target: {fileID: 7572331084769716704, guid: 509f0dc17271566419157f03025ba4c0,
         type: 3}
       propertyPath: managedReferences[196715226078642176].DebugTexture
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7572331084769716704, guid: 509f0dc17271566419157f03025ba4c0,
         type: 3}

@@ -168,7 +168,7 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
     // float3 final = lerp(SSSColor,float3(1,1,1),fresnelTerm);
 
 
-    DirectDiffuse = float3(SSSColor );
+    DirectDiffuse = float3(saturate(NDL),saturate(NDL),saturate(NDL) );
 }
 
 
