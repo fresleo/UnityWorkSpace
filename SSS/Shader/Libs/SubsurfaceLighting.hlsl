@@ -143,11 +143,9 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
 
     half TransmitFactor = pow(halfNDL, _ThickOffset);
 
-    float3 BackColor = SampleTransmitTexture(TransmitFactor);
-
-    float3 MiddleColor = SampleTransmitTexture(abs(halfNDL - 0.5));
-
-    float3 SSSColor = BackColor + ((NDL+1)*0.5 * Shadow) ;
+    float3 BackColor = SampleTransmitTexture(TransmitFactor) * (1 - sufsurfaceLighting.Thickness);
+    
+    float3 SSSColor = (BackColor + saturate(NDL)) * sufsurfaceLighting.Albedo;
     //===================fresnel (模仿光滑表面)============================
 
     // float3 viewXDirWS = normalize(mul(_InvViewMatrix, float4(0, 0, 0,1)).xyz - sufsurfaceLighting.PositionRWS);
@@ -164,11 +162,12 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
 
     fresnelTerm *= distanceFade;
 
-    float3 final = SSSColor * (1 - fresnelTerm) + fresnelTerm;
+    // float3 final = SSSColor * (1 - fresnelTerm) + fresnelTerm;
     // float3 final = lerp(SSSColor,float3(1,1,1),fresnelTerm);
 
+    float3 final = SSSColor * (1 - fresnelTerm) + fresnelTerm;
 
-    DirectDiffuse = float3(saturate(NDL),saturate(NDL),saturate(NDL) );
+    DirectDiffuse = float3(final);
 }
 
 

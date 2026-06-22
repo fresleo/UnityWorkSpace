@@ -6,7 +6,7 @@ Shader "HDRP/Lit_615"
         // They are use to fill a SurfaceData. With a MaterialGraph this should not exist.
 
         // Reminder. Color here are in linear but the UI (color picker) do the conversion sRGB to linear
-        _KnightThicknessMap("Thickness Map", 2D) = "white" {}
+        _KnightThicknessMap("Thickness Map", 2D) = "Black" {}
 
         [MainColor] _BaseColor("BaseColor", Color) = (1,1,1,1)
         [MainTexture] _BaseColorMap("BaseColorMap", 2D) = "white" {}

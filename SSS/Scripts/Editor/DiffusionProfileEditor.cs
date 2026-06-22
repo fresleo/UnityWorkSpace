@@ -101,7 +101,7 @@ namespace Garena.TA.SSS
             // EditorGUILayout.PropertyField(ThicknessRemapMinProp, new GUIContent("Thickness Remap Min"));
             // EditorGUILayout.PropertyField(ThicknessRemapMaxProp, new GUIContent("Thickness Remap Max"));
             EditorGUILayout.MinMaxSlider(_styles.ProfileThicknessRemap, ref asset.ThicknessRemapMin,
-                ref asset.ThicknessRemapMax, 0f, 2000f);
+                ref asset.ThicknessRemapMax, 0f, 200f);
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.PropertyField(worldScaleProp, _styles.ProfileWorldScale);
 
