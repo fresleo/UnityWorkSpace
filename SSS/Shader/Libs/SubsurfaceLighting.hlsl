@@ -165,9 +165,10 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
 
     float3 final = SSSColor * (1 - fresnelTerm) + (fresnelTerm);
 
-    ShadowMask = saturate(-((GetShadowAttenuation(sufsurfaceLighting) - 1) + NDL));
-    float Test = abs(saturate(GetShadowAttenuation(sufsurfaceLighting) * NDL)-1);
-    final = float3(Test, Test, Test);
+    // ShadowMask = saturate(-((GetShadowAttenuation(sufsurfaceLighting) - 1) + NDL));
+    ShadowMask = step(saturate(GetShadowAttenuation(sufsurfaceLighting) * NDL),0.25);
+    // float Test = step(saturate(GetShadowAttenuation(sufsurfaceLighting) * NDL),0.25);
+    // final = float3(Test, Test, Test);
     DirectDiffuse = float3(final);
 }
 

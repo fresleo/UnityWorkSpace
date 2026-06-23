@@ -820,7 +820,7 @@ PrefabInstance:
     - target: {fileID: 7572331084769716704, guid: 509f0dc17271566419157f03025ba4c0,
         type: 3}
       propertyPath: managedReferences[196715226078642176].EDebugTextureChanel
-      value: 0
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 7572331084769716704, guid: 509f0dc17271566419157f03025ba4c0,
         type: 3}
