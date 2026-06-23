@@ -17,7 +17,7 @@ RW_TEXTURE2D_X(float4, _SubsurfaceLighting);
 
 void StoreResult(uint2 pixelCoord, float3 irradiance)
 {
-    _SubsurfaceLighting[COORD_TEXTURE2D_X(pixelCoord)] = float4(irradiance, 1);  // ← 加 COORD_TEXTURE2D_X
+    _SubsurfaceLighting[COORD_TEXTURE2D_X(pixelCoord)] = float4(irradiance, 1); // ← 加 COORD_TEXTURE2D_X
 }
 
 [numthreads(GROUP_SIZE_2D, 1, 1)]
@@ -28,7 +28,7 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
     //---------------------------屏幕分布点(morton z-order)----------------------------------
     groupThreadId &= GROUP_SIZE_2D - 1;
 
-    uint waveIndex = WaveReadLaneFirst(groupThreadId / 64);//强制这个值在整个 wave 内统一
+    uint waveIndex = WaveReadLaneFirst(groupThreadId / 64); //强制这个值在整个 wave 内统一
     uint laneIndex = groupThreadId % 64; // 线程在当前 wave 中的编号
     uint quadIndex = laneIndex / 4;
 
@@ -43,7 +43,11 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
 
     //当线程按照morton排布之后，采样一张图片回合mortonid排布一致
     int2 sCoord = clamp((int2)pixelCoord, 0, (int2)_ScreenSize.xy - 1);
-    float3 centerIrradiance = LOAD_TEXTURE2D_X(_SSSDiffuse, sCoord).rgb;
+    float4 centerSample = LOAD_TEXTURE2D_X(_SSSDiffuse, sCoord);
+    float3 centerIrradiance = centerSample.rgb;
+
+    float centerShadow = centerSample.a;
+
     float centerDepth = 0;
 
 
@@ -56,11 +60,11 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
     // ==================================debug =================================
     float dbgLinear = (centerDepth > 0.0) ? LinearEyeDepth(centerDepth, _ZBufferParams) : 0.0;
     StoreDebug(pixelCoord, float4(
-        dbgLinear,                  // .x  raw device depth (reversed-Z, 近=1 远=0)
-        dbgLinear,                    // .y  线性视空间深度 (场景单位, 距相机距离)
-        dbgLinear,// .z  是否过了 stencil (是否是 SSS 像素)
-        1.0));
-    
+                   dbgLinear, // .x  raw device depth (reversed-Z, 近=1 远=0)
+                   dbgLinear, // .y  线性视空间深度 (场景单位, 距相机距离)
+                   dbgLinear, // .z  是否过了 stencil (是否是 SSS 像素)
+                   1.0));
+
     //----------------------------------------缓存像素点----------------------------------------------
 
     uint2 cacheCoord = groupCoord + TEXTURE_CACHE_BORDER;
@@ -141,9 +145,9 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
         uint2 cacheCoord2 = 2 * (startQuad + quadCoord) + DeinterleaveQuad(laneIndex);
         //这里获取边界pixel
         int2 pixelCoord2 = (int2)(groupOffset + cacheCoord2) - TEXTURE_CACHE_BORDER;
-        int2 s2 = clamp(pixelCoord2, 0, (int2)_ScreenSize.xy - 1); 
+        int2 s2 = clamp(pixelCoord2, 0, (int2)_ScreenSize.xy - 1);
         //获取偏移的像素rgb
-        float3 irradiance2 = LOAD_TEXTURE2D_X(_SSSDiffuse, s2 ).rgb;
+        float3 irradiance2 = LOAD_TEXTURE2D_X(_SSSDiffuse, s2).rgb;
         float depth2 = 0;
 
         if (TestLightingForSSS(irradiance2))
@@ -170,7 +174,7 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
     float2 centerPosNDC = posInput.positionNDC;
 
     float2 cornerPosNDC = centerPosNDC + 0.5 * _ScreenSize.zw;
-    
+
     //把一个屏幕空间点（NDC 坐标 + 深度值）还原成相机空间（View Space）的 3D 坐标
     float3 centerPosVS = ComputeViewSpacePosition(centerPosNDC, centerDepth, _InvProjMatrix);
     float3 cornerPosVS = ComputeViewSpacePosition(cornerPosNDC, centerDepth, _InvProjMatrix);
@@ -218,7 +222,13 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
                        totalIrradiance, totalWeight, linearDepth);
     }
 
+
     totalWeight = max(totalWeight, FLT_MIN);
-    
-    StoreResult(pixelCoord, albedo * (totalIrradiance / totalWeight));
+
+    //====================Shadow============
+    float3 scattered = totalIrradiance / totalWeight;
+    scattered *= 1 + centerShadow * _ShadowStrenthen;
+    //==================shadow end=========
+
+    StoreResult(pixelCoord, albedo  * scattered);
 }

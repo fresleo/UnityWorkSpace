@@ -110,7 +110,7 @@ float GetShadowAttenuation(DirectSufsurfaceLighting posInput)
     return shadowAttenuation;
 }
 
-void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 DirectDiffuse)
+void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 DirectDiffuse, out float ShadowMask)
 {
     float3 normal = sufsurfaceLighting.NormalWS;
     DirectionalLightData lightData = _DirectionalLightDatas[0];
@@ -126,26 +126,24 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
     //计算公式
     // float test = ComputeTransmittanceProfile(t, _ShapeParams);
 
-
-    //=====================debug Color=============
-
-    // float3 Transmist = sufsurfaceLighting.Albedo * saturate(
-    //         Thickness * ComputeTransmittanceProfile(t, S) * (NDL * 0.85 + 0.27)) +
-    //     saturate(Thickness * ComputeTransmittanceProfile(t, S) * (1 - TransmitFactor));
-    //====================debug end ==============
-
     //========================shadow start ===========================
-    float Shadow = GetShadowAttenuation(sufsurfaceLighting);
 
+
+    float Shadow = GetShadowAttenuation(sufsurfaceLighting) * saturate(NDL);
 
     //=======================shadow end========================
     float halfNDL = (NDL + 1) * 0.5;
 
-    half TransmitFactor = pow(halfNDL, _ThickOffset);
+    half TransmitFactor = pow(halfNDL, abs(_ThickOffset));
 
-    float3 BackColor = SampleTransmitTexture(TransmitFactor) * (1 - sufsurfaceLighting.Thickness);
-    
-    float3 SSSColor = (BackColor + saturate(NDL)) * sufsurfaceLighting.Albedo;
+
+    half ThichnessFactor = pow(Thickness, abs(_ThickOffset));
+
+    float3 BackColor = SampleTransmitTexture(TransmitFactor) * (1 - ThichnessFactor);
+
+    // float3 BackColor1 = SampleTransmitTexture(NDL * _ThickOffset + 0.5);
+
+    float3 SSSColor = (Shadow + BackColor);
     //===================fresnel (模仿光滑表面)============================
 
     // float3 viewXDirWS = normalize(mul(_InvViewMatrix, float4(0, 0, 0,1)).xyz - sufsurfaceLighting.PositionRWS);
@@ -165,8 +163,11 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
     // float3 final = SSSColor * (1 - fresnelTerm) + fresnelTerm;
     // float3 final = lerp(SSSColor,float3(1,1,1),fresnelTerm);
 
-    float3 final = SSSColor * (1 - fresnelTerm) + fresnelTerm;
+    float3 final = SSSColor * (1 - fresnelTerm) + (fresnelTerm);
 
+    ShadowMask = saturate(-((GetShadowAttenuation(sufsurfaceLighting) - 1) + NDL));
+    float Test = abs(saturate(GetShadowAttenuation(sufsurfaceLighting) * NDL)-1);
+    final = float3(Test, Test, Test);
     DirectDiffuse = float3(final);
 }
 

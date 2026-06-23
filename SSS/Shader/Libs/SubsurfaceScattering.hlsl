@@ -34,6 +34,7 @@ float _MaxRadius;
 float _WorldScale;
 uint _DiscKernelCount;
 int _SssSampleBudget;
+float _ShadowStrenthen;
 //--------------------------------------end =---------------------------------
 
 
@@ -85,7 +86,7 @@ float4 LoadSample(int2 pixelCoord, int2 cacheOffset)
     float4 value;
     //判断是否在 shared memory 缓存内
     int2 cacheCoord = pixelCoord - cacheOffset;
-    bool isInCache  = max((uint)cacheCoord.x, (uint)cacheCoord.y) < TEXTURE_CACHE_SIZE_1D;
+    bool isInCache = max((uint)cacheCoord.x, (uint)cacheCoord.y) < TEXTURE_CACHE_SIZE_1D;
 
     if (isInCache)
     {
@@ -93,7 +94,6 @@ float4 LoadSample(int2 pixelCoord, int2 cacheOffset)
     }
     else
     {
-
         value = LoadSampleFromVideoMemory(pixelCoord);
     }
 
@@ -101,6 +101,9 @@ float4 LoadSample(int2 pixelCoord, int2 cacheOffset)
 
     return value;
 }
+
+
+
 
 void SampleBurleyDiffusionProfile(float u, float rcpS, out float r, out float rcpPdf)
 {
@@ -136,6 +139,8 @@ float3 ComputeBilateralWeight(float xy2, float z, float mmPerUnit, float3 S, flo
     return EvalBurleyDiffusionProfile(r, S) * area;
 }
 
+//pixelCoord ：中心像素
+
 void EvaluateSample(uint i, uint n, int2 pixelCoord,
                     int2 cacheOffset, float3 S, float d,
                     float mmPerUnit, float pixelsPerMm, float phase,
@@ -157,7 +162,7 @@ void EvaluateSample(uint i, uint n, int2 pixelCoord,
 
     float sinPsi = cosPhase * sinPhi + sinPhase * cosPhi; // sin(phase + phi)
     float cosPsi = cosPhase * cosPhi - sinPhase * sinPhi; // cos(phase + phi)
-
+    //position ：邻居采样点
     float2 position = pixelCoord + (int2)round(pixelsPerMm * r * float2(cosPsi, sinPsi));
     float xy2 = r * r;
 
@@ -166,7 +171,7 @@ void EvaluateSample(uint i, uint n, int2 pixelCoord,
 
     if (TestLightingForSSS(irradiance))
     {
-        // Apply bilateral weighting.
+        
         float viewZ = textureSample.a;
         float relZ = viewZ - linearDepth;
         float3 weight = ComputeBilateralWeight(xy2, relZ, mmPerUnit, S, rcpPdf);

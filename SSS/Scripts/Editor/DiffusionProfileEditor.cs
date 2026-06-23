@@ -23,12 +23,12 @@ namespace Garena.TA.SSS
         private SerializedProperty worldScaleProp;
 
         private SerializedProperty kernelSampleCountProp;
-
+        private SerializedProperty ShadowStrenthenProp;
         public SerializedProperty Fresnel0Prop;
         public SerializedProperty FresnelScaleProp;
         public SerializedProperty TransmissionTintProp;
         public SerializedProperty ThickOffsetProp;
-
+        
         //==========================Editor properties ====================
         private static Styles _styles;
 
@@ -40,7 +40,7 @@ namespace Garena.TA.SSS
             maxRadiusProp = serializedObject.FindProperty("InputMaxRadius");
             worldScaleProp = serializedObject.FindProperty("worldScale");
             kernelSampleCountProp = serializedObject.FindProperty("kernelSampleCount");
-
+            ShadowStrenthenProp = serializedObject.FindProperty("ShadowStrenthen");
             Fresnel0Prop = serializedObject.FindProperty("Fresnel0");
             FresnelScaleProp = serializedObject.FindProperty("FresnelScale");
             TransmissionTintProp = serializedObject.FindProperty("TransmissionTint");
@@ -97,6 +97,7 @@ namespace Garena.TA.SSS
             EditorGUILayout.PropertyField(FresnelScaleProp, _styles.FresnelScaleProp);
             EditorGUILayout.PropertyField(TransmissionTintProp, _styles.ProfileTransmissionTint);
             EditorGUILayout.Slider(ThickOffsetProp,0f,20f, _styles.ThickOffset);
+            EditorGUILayout.Slider(ShadowStrenthenProp,0,2, _styles.ShadowStrenthen);
             EditorGUILayout.BeginHorizontal();
             // EditorGUILayout.PropertyField(ThicknessRemapMinProp, new GUIContent("Thickness Remap Min"));
             // EditorGUILayout.PropertyField(ThicknessRemapMaxProp, new GUIContent("Thickness Remap Max"));
@@ -320,7 +321,8 @@ namespace Garena.TA.SSS
 
             public readonly GUIContent ThickOffset = new("光照偏移值(背光的偏移)",
                 "展示如何表现厚边缘");
-
+            public readonly GUIContent ShadowStrenthen = new("阴影加强",
+                "阴影散射加强");
             public readonly GUIContent ProfileThicknessRemap = new("厚度重采样 (最小-最大)",
                 "重新采样厚度空间从 [0, 1] (in millimeters).");
 

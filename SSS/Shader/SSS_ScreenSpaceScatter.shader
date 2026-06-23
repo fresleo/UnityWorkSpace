@@ -110,12 +110,11 @@ Shader "Hidden/ScreenSpaceScatter"
 
         Pass
         {
-            
+
             Name "SSSComposite"
 
             Blend [_SrcBlend] [_DstBlend]
             HLSLPROGRAM
-            
             #pragma vertex Vert
             #pragma fragment FragComposite
             #pragma target 4.5
@@ -125,6 +124,8 @@ Shader "Hidden/ScreenSpaceScatter"
 
             TEXTURE2D_X(_SSSAlbedo);
             TEXTURE2D_X(_SSSScatterResult);
+            TEXTURE2D_X(_ColorBuffer);
+            float _SSS_Strenth;
 
             struct Varyings
             {
@@ -146,7 +147,9 @@ Shader "Hidden/ScreenSpaceScatter"
                 int2 px = clamp((int2)((i.uv / _RTHandleScale.xy) * _ScreenSize.xy), int2(0, 0), size - 1);
                 float3 c = LOAD_TEXTURE2D_X(_SSSScatterResult, px).rgb;
                 float a = LOAD_TEXTURE2D_X(_SSSAlbedo, px).a;
-                return float4(c, a);
+                float DistAlpha;
+                DistAlpha = a * _SSS_Strenth;
+                return float4(c, DistAlpha);
             }
             ENDHLSL
         }

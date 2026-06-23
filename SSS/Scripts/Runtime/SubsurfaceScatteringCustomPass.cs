@@ -14,6 +14,16 @@ namespace Garena.TA.SSS
         Albedo,
         Diffusion
     }
+
+    public enum UTextureChanel
+    {
+        Default,
+        R,
+        G,
+        B,
+        A
+    }
+
     [Serializable]
     public class SubsurfaceScatteringCustomPass : CustomPass
     {
@@ -25,15 +35,18 @@ namespace Garena.TA.SSS
         private string subsurfaceDiffuseTag = "SubsurfaceDiffuse";
 
         [Header("Scattering")] public bool preferCompute = true; // 平台支持时优先 Compute
-        public bool remultiplyAlbedo = true; // 散射后乘回反照率(= 最终漫反射颜色)
+
+        [Range(0, 1)] public float SSS_Strenth = 0; // 散射后乘回反照率(= 最终漫反射颜色)
 
         public DiffusionProfileParam Profile;
 
-        public bool DebugViewSubsurfaceLight = false;
 
         public bool DebugTexture = false;
 
         public UDebugTexture EDebug = UDebugTexture.Albedo;
+
+        public UTextureChanel EDebugTextureChanel = UTextureChanel.Default;
+
         // ---------------- 内部资源 ----------------
         RTHandle _diffuseRT; // rgb = 漫反射辐照度, a = coverage
         RTHandle _albedoRT; // rgb = 反照率
@@ -41,6 +54,7 @@ namespace Garena.TA.SSS
 
 
         RTHandle m_SSSDebugRT;
+        RTHandle m_CameraColorCopy;
 
         Material _scatterMat;
         Material debugMat;
@@ -61,6 +75,7 @@ namespace Garena.TA.SSS
             public static readonly int Output = Shader.PropertyToID("_SubsurfaceLighting");
             public static readonly int Shape = Shader.PropertyToID("_ShapeParams");
             public static readonly int MaxRadius = Shader.PropertyToID("_MaxRadius");
+            public static readonly int ShadowStrenthen = Shader.PropertyToID("_ShadowStrenthen");
             public static readonly int WorldScale = Shader.PropertyToID("_WorldScale");
             public static readonly int KernelCount = Shader.PropertyToID("_DiscKernelCount");
             public static readonly int SampleBudget = Shader.PropertyToID("_SssSampleBudget");
@@ -69,16 +84,19 @@ namespace Garena.TA.SSS
             public static readonly int _TransmissionTint = Shader.PropertyToID("_TransmissionTint");
             public static readonly int ThickOffset = Shader.PropertyToID("_ThickOffset");
 
-            public static readonly int ScatterResult = Shader.PropertyToID("_SSSScatterResult");
-
 
             public static readonly int _Fresnel0 = Shader.PropertyToID("_Fresnel0");
+
+            //Blit
+            public static readonly int ScatterResult = Shader.PropertyToID("_SSSScatterResult");
+            public static readonly int SSSStrenth = Shader.PropertyToID("_SSS_Strenth");
+            public static readonly int ColorBuffer = Shader.PropertyToID("_ColorBuffer");
+
 
             //=================================debug===========================
             public static readonly int s_SSSDebugOutput = Shader.PropertyToID("_SSSDebugOutput");
         }
 
-        const string kKeywordRemultiply = "SSS_REMULTIPLY_ALBEDO";
 
         // =========================================================================
         protected override void Setup(ScriptableRenderContext renderContext, CommandBuffer cmd)
@@ -116,6 +134,12 @@ namespace Garena.TA.SSS
                 colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                 enableRandomWrite: true, useDynamicScale: true, name: "_SSSDebugOutput");
 
+            m_CameraColorCopy = RTHandles.Alloc(
+                Vector2.one, slices: TextureXR.slices, dimension: TextureXR.dimension,
+                colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
+                filterMode: FilterMode.Point, wrapMode: TextureWrapMode.Clamp,
+                useDynamicScale: true, name: "_CameraColorCopy");
+
             _splitMRT = new RenderTargetIdentifier[2];
 
             PushGlobals(cmd);
@@ -129,6 +153,12 @@ namespace Garena.TA.SSS
             // Debug.Log("_diffuseRT.rt.dimension:"+_diffuseRT.rt.dimension);
             var hd = ctx.hdCamera;
             var cmd = ctx.cmd;
+
+
+            if (m_CameraColorCopy != null)
+            {
+                ctx.cmd.CopyTexture(ctx.cameraColorBuffer, m_CameraColorCopy);
+            }
 
             int w = hd.actualWidth;
             int h = hd.actualHeight;
@@ -150,7 +180,7 @@ namespace Garena.TA.SSS
                               && _kernelScatter >= 0
                               && SystemInfo.supportsComputeShaders; //支持计算着色器
             // Debug.Log("preferCompute:"+preferCompute + ", useCompute:"+useCompute + ", scatterCompute:"+scatterCompute + ", _kernelScatter:"+ _kernelScatter + ", SystemInfo.supportsComputeShaders:"+ SystemInfo.supportsComputeShaders);
-            Vector4 zParams = GetZBufferParams(hd.camera);
+
             // Debug.Log("ctx.cameraDepthBuffer:"+ctx.cameraDepthBuffer.rt.dimension);
             // ---- Stage 2: Scatter (结果存入 _lightingRT) ----
             if (useCompute)
@@ -166,8 +196,6 @@ namespace Garena.TA.SSS
             // ---- Stage 3: Composite (加法叠加回相机颜色) ----
             RenderComposite(ctx, w, h);
 
-            CoreUtils.SetRenderTarget(ctx.cmd, _lightingRT, ctx.cameraDepthBuffer,
-                ClearFlag.Color, Color.clear);
 
             if (DebugTexture)
             {
@@ -175,6 +203,11 @@ namespace Garena.TA.SSS
                 CoreUtils.SetRenderTarget(ctx.cmd, m_SSSDebugRT, ctx.cameraDepthBuffer,
                     ClearFlag.Color, Color.clear);
             }
+
+            CoreUtils.SetRenderTarget(ctx.cmd, m_CameraColorCopy, ctx.cameraColorBuffer,
+                ClearFlag.None, Color.clear);
+            CoreUtils.SetRenderTarget(ctx.cmd, _lightingRT, ctx.cameraDepthBuffer,
+                ClearFlag.Color, Color.clear);
         }
 
         // -------------------------------------------------------------------------
@@ -254,8 +287,6 @@ namespace Garena.TA.SSS
         // -------------------------------------------------------------------------
         void DispatchScatterCompute(CommandBuffer cmd, int w, int h)
         {
-            CoreUtils.SetKeyword(scatterCompute, kKeywordRemultiply, remultiplyAlbedo);
-
             cmd.SetComputeTextureParam(scatterCompute, _kernelScatter, SID.Diffuse, _diffuseRT);
             cmd.SetComputeTextureParam(scatterCompute, _kernelScatter, SID.Albedo, _albedoRT);
             cmd.SetComputeTextureParam(scatterCompute, _kernelScatter, SID.DiscKernel, Profile.discKernelTex);
@@ -267,6 +298,7 @@ namespace Garena.TA.SSS
             cmd.SetComputeIntParam(scatterCompute, SID.SampleBudget, 32);
             cmd.SetComputeVectorParam(scatterCompute, SID.Shape, Profile.InputShape);
             cmd.SetComputeFloatParam(scatterCompute, SID.MaxRadius, Profile.InputMaxRadius);
+            cmd.SetComputeFloatParam(scatterCompute, SID.ShadowStrenthen, Profile.InputShadowStrenthen);
             //debug
             cmd.SetComputeTextureParam(scatterCompute, _kernelScatter, SID.s_SSSDebugOutput, m_SSSDebugRT);
 
@@ -318,9 +350,11 @@ namespace Garena.TA.SSS
                     TestRT = m_SSSDebugRT;
                     break;
             }
+
             debugMat.SetTexture(SID.s_SSSDebugOutput, TestRT);
-            debugMat.SetFloat("_DebugChannel", 0);
-            debugMat.SetFloat("_DepthScale", 0.1f);
+            // 显示 TestRT 的 A 通道为灰阶（通道索引 3）
+            debugMat.SetFloat("_DebugChannel", (uint)EDebugTextureChanel);
+            debugMat.SetFloat("_DepthScale", 1f);
             CoreUtils.DrawFullScreen(ctx.cmd, debugMat, ctx.cameraColorBuffer, shaderPassId: 0);
         }
 
@@ -328,39 +362,17 @@ namespace Garena.TA.SSS
         {
             _scatterMat.SetTexture(SID.Albedo, _albedoRT);
             _scatterMat.SetTexture(SID.ScatterResult, _lightingRT);
-            if (DebugViewSubsurfaceLight)
-            {
-                _scatterMat.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
-                _scatterMat.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
-                _scatterMat.renderQueue = (int)RenderQueue.Transparent;
-            }
-            else
-            {
-                _scatterMat.SetInt("_SrcBlend", (int)BlendMode.One);
-                _scatterMat.SetInt("_DstBlend", (int)BlendMode.One);
-                _scatterMat.renderQueue = (int)RenderQueue.Transparent;
-            }
+            // 使用之前复制的摄像机颜色贴图，避免读写同一目标导致未定义行为
+            _scatterMat.SetTexture(SID.ColorBuffer, m_CameraColorCopy);
+            _scatterMat.SetFloat(SID.SSSStrenth, SSS_Strenth);
 
+            _scatterMat.SetInt("_SrcBlend", (int)BlendMode.One);
+            _scatterMat.SetInt("_DstBlend", (int)BlendMode.One);
+            _scatterMat.renderQueue = (int)RenderQueue.Transparent;
+            
             CoreUtils.DrawFullScreen(ctx.cmd, _scatterMat, ctx.cameraColorBuffer, ctx.propertyBlock, kPassComposite);
         }
 
-
-        // -------------------------------------------------------------------------
-        // 复刻 Unity _ZBufferParams（含 reverse-Z 处理）。LinearEyeDepth = 1/(z*d + w)。
-        static Vector4 GetZBufferParams(Camera cam)
-        {
-            double n = cam.nearClipPlane;
-            double f = cam.farClipPlane;
-            double x = 1.0 - f / n;
-            double y = f / n;
-            if (SystemInfo.usesReversedZBuffer)
-            {
-                x = -1.0 + f / n;
-                y = 1.0;
-            }
-
-            return new Vector4((float)x, (float)y, (float)(x / f), (float)(y / f));
-        }
 
         // =========================================================================
         protected override void Cleanup()
@@ -369,6 +381,7 @@ namespace Garena.TA.SSS
             _albedoRT?.Release();
             _lightingRT?.Release();
             CoreUtils.Destroy(_scatterMat);
+            m_CameraColorCopy?.Release();
         }
     }
 }

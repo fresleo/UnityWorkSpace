@@ -24,7 +24,7 @@ namespace Garena.TA.SSS
         [SerializeField] public float ThicknessRemapMin;
         [SerializeField] public float ThicknessRemapMax;
         [SerializeField] public float ThickOffset = 0f;
-
+        [SerializeField] public float ShadowStrenthen = 0f;
         //=======================intpu =================================
         [HideInInspector] [SerializeField] public int InputDiscSampleCount = 32;
         [HideInInspector] [SerializeField] public float InputMaxRadius = 15f;
@@ -37,8 +37,8 @@ namespace Garena.TA.SSS
         [HideInInspector] [SerializeField] public Vector3 InputTransmissionTint;
         [HideInInspector] [SerializeField] public Vector4 InputThicknessRemap;
         [HideInInspector] [SerializeField] public float InputThickOffset;
-
-
+        [HideInInspector] [SerializeField] public float InputShadowStrenthen;
+        
         [Header("Generated Textures")] public Texture2D discKernelTex;
         public RenderTexture discPreviewTexture;
         public RenderTexture TransmistPreviewTexture;
@@ -82,7 +82,7 @@ namespace Garena.TA.SSS
                 Input_d
             );
             InputMaxRadius = SampleBurleyDiffusionProfile();
-
+            InputShadowStrenthen = ShadowStrenthen;
             //transmit
             InputFresnel0 = Fresnel0;
             InputFresnelScale = FresnelScale;

@@ -2,7 +2,10 @@ Shader "Hidden/XKnight/SSSDebug"
 {
     SubShader
     {
-        Tags { "RenderPipeline" = "HDRenderPipeline" }
+        Tags
+        {
+            "RenderPipeline" = "HDRenderPipeline"
+        }
         Pass
         {
             ZWrite Off ZTest Always Blend Off Cull Off
@@ -16,11 +19,18 @@ Shader "Hidden/XKnight/SSSDebug"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
 
             TEXTURE2D_X(_SSSDebugOutput);
-            float _DebugChannel;   // 0=raw depth, 1=linear01(归一化), 2=stencil mask
-            float _DepthScale;     // linear 深度归一化系数, 比如 1/远平面米数
+            float _DebugChannel; // 0=raw depth, 1=linear01(归一化), 2=stencil mask
+            float _DepthScale; // linear 深度归一化系数, 比如 1/远平面米数
 
-            struct Attributes { uint vertexID : SV_VertexID; };
-            struct Varyings   { float4 positionCS : SV_POSITION; };
+            struct Attributes
+            {
+                uint vertexID : SV_VertexID;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+            };
 
             Varyings Vert(Attributes i)
             {
@@ -34,10 +44,30 @@ Shader "Hidden/XKnight/SSSDebug"
                 uint2 pc = uint2(i.positionCS.xy);
                 float4 d = LOAD_TEXTURE2D_X(_SSSDebugOutput, pc);
 
-                // float v;
-                // if      (_DebugChannel == 0) v = d.x;               
-                // else if (_DebugChannel == 1) v = saturate(d.y * _DepthScale); 
-                // else                         v = d.z;
+                if (_DebugChannel == 0)
+                {
+                    return d;
+                }
+                else if (_DebugChannel == 1)
+                {
+                    float v = saturate(d.x * _DepthScale);
+                    return float4(v, v, v, 1.0);
+                }
+                else if (_DebugChannel == 2)
+                {
+                    float v = saturate(d.y * _DepthScale);
+                    return float4(v, v, v, 1.0);
+                }
+                else if (_DebugChannel == 3)
+                {
+                    float v = saturate(d.z * _DepthScale);
+                    return float4(v, v, v, 1.0);
+                }
+                else if (_DebugChannel == 4)
+                {
+                    float a = d.w;
+                    return float4(a, a, a, 1.0);
+                }
                 return d;
             }
             ENDHLSL

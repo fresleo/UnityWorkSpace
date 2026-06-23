@@ -97,13 +97,13 @@ Shader "Hidden/SubsurfaceDiffuse"
                 uint2 tileIndex = uint2(input.positionSS.xy) / 1;
                 //标准化结构方便后续采样，重建
                 PositionInputs posInput = GetPositionInput(input.positionSS.xy, _ScreenSize.zw, input.positionSS.z,
-                                                       input.positionSS.w, input.positionRWS.xyz,
-                                                       tileIndex);
+                                                           input.positionSS.w, input.positionRWS.xyz,
+                                                           tileIndex);
                 float3 PositionWS = GetAbsolutePositionWS(posInput.positionWS);
                 float3 V = GetWorldSpaceNormalizeViewDir(packedInput.positionWS);
                 float4 ScreenPosNorm = float4(posInput.positionNDC, packedInput.positionCS.zw);
                 float4 ClipPos = ComputeClipSpacePosition(ScreenPosNorm.xy, packedInput.positionCS.z) * packedInput.
-                              positionCS.w;
+                    positionCS.w;
                 float4 ScreenPos = ComputeScreenPos(ClipPos, _ProjectionParams.x);
                 float3 NormalWS = packedInput.normalWS;
                 float3 TangentWS = packedInput.tangentWS.xyz;
@@ -127,16 +127,15 @@ Shader "Hidden/SubsurfaceDiffuse"
                 subsurfaceLight.viewDir = V;
                 subsurfaceLight.positionCS = input.positionSS;
                 subsurfaceLight.Thickness = tex2D(_KnightThicknessMap, packedInput.uv1.xy).r;
-                DirectLightSSS(subsurfaceLight, DirectDiffuse);
+                float ShadowMask = 0;
+                DirectLightSSS(subsurfaceLight, DirectDiffuse, ShadowMask);
 
                 // float3 finalColor = DirectDiffuse * 0.5f + (IndirectDiffuse * 0.5f);
                 float3 finalColor = DirectDiffuse;
                 finalColor.b = max(finalColor.b, HALF_MIN);
-
-                float Shadow = GetShadowAttenuation(subsurfaceLight);
-                
-                ouputColor = float4(finalColor,Shadow);
-                ouputAlbedo = float4(1, 1, 1, 1.0);
+                // ShadowMask = max(ShadowMask, HALF_MIN);
+                ouputColor = float4(finalColor, ShadowMask);
+                ouputAlbedo = float4(Albedo, 1.0);
                 // outputShadow = float4(Shadow, 0, 0, 0);
             }
             ENDHLSL
