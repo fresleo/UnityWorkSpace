@@ -230,5 +230,5 @@ void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
     scattered *= 1 + centerShadow * _ShadowStrenthen;
     //==================shadow end=========
 
-    StoreResult(pixelCoord, albedo  * scattered);
+    StoreResult(pixelCoord, albedo * albedo * scattered);
 }

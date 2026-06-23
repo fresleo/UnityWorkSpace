@@ -50,11 +50,11 @@ namespace Garena.TA.SSS
         // ---------------- 内部资源 ----------------
         RTHandle _diffuseRT; // rgb = 漫反射辐照度, a = coverage
         RTHandle _albedoRT; // rgb = 反照率
-        RTHandle _lightingRT; // 散射结果（compute 需 randomWrite）
+        RTHandle _lightingRT; // 散射结果
 
 
         RTHandle m_SSSDebugRT;
-        RTHandle m_CameraColorCopy;
+
 
         Material _scatterMat;
         Material debugMat;
@@ -134,11 +134,7 @@ namespace Garena.TA.SSS
                 colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                 enableRandomWrite: true, useDynamicScale: true, name: "_SSSDebugOutput");
 
-            m_CameraColorCopy = RTHandles.Alloc(
-                Vector2.one, slices: TextureXR.slices, dimension: TextureXR.dimension,
-                colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
-                filterMode: FilterMode.Point, wrapMode: TextureWrapMode.Clamp,
-                useDynamicScale: true, name: "_CameraColorCopy");
+
 
             _splitMRT = new RenderTargetIdentifier[2];
 
@@ -155,10 +151,6 @@ namespace Garena.TA.SSS
             var cmd = ctx.cmd;
 
 
-            if (m_CameraColorCopy != null)
-            {
-                ctx.cmd.CopyTexture(ctx.cameraColorBuffer, m_CameraColorCopy);
-            }
 
             int w = hd.actualWidth;
             int h = hd.actualHeight;
@@ -203,9 +195,7 @@ namespace Garena.TA.SSS
                 CoreUtils.SetRenderTarget(ctx.cmd, m_SSSDebugRT, ctx.cameraDepthBuffer,
                     ClearFlag.Color, Color.clear);
             }
-
-            CoreUtils.SetRenderTarget(ctx.cmd, m_CameraColorCopy, ctx.cameraColorBuffer,
-                ClearFlag.None, Color.clear);
+            
             CoreUtils.SetRenderTarget(ctx.cmd, _lightingRT, ctx.cameraDepthBuffer,
                 ClearFlag.Color, Color.clear);
         }
@@ -262,7 +252,7 @@ namespace Garena.TA.SSS
             //渲染List,不透明，Tag为 SubsurfaceDiffuse也会进入
             var desc = new RendererListDesc(_shaderTags, ctx.cullingResults, ctx.hdCamera.camera)
             {
-                renderQueueRange = RenderQueueRange.opaque,
+                renderQueueRange = RenderQueueRange.opaque,//不透明物体
                 sortingCriteria = SortingCriteria.CommonOpaque,
                 // 让 HDRP 把光照贴图/光照探针/阴影遮罩等逐物体数据喂给 SubsurfaceDiffuse Pass
                 rendererConfiguration = PerObjectData.LightProbe
@@ -277,7 +267,7 @@ namespace Garena.TA.SSS
             _splitMRT[0] = _diffuseRT; //第 0 个颜色附件指向
             _splitMRT[1] = _albedoRT; //第 1 个颜色附件指向
             // 用相机深度做 ZTest（SubsurfaceDiffuse Pass 内 ZTest Equal / ZWrite Off）
-            // 两张 MRT 清成 (0,0,0,0)，coverage=0 → 非 SSS 区域散射不产生贡献
+            // 两张 MRT 清成 (0,0,0,0)，coverage=0 非 SSS 区域散射不产生贡献
             CoreUtils.SetRenderTarget(ctx.cmd, _splitMRT, ctx.cameraDepthBuffer,
                 ClearFlag.Color, Color.clear);
 
@@ -363,7 +353,6 @@ namespace Garena.TA.SSS
             _scatterMat.SetTexture(SID.Albedo, _albedoRT);
             _scatterMat.SetTexture(SID.ScatterResult, _lightingRT);
             // 使用之前复制的摄像机颜色贴图，避免读写同一目标导致未定义行为
-            _scatterMat.SetTexture(SID.ColorBuffer, m_CameraColorCopy);
             _scatterMat.SetFloat(SID.SSSStrenth, SSS_Strenth);
 
             _scatterMat.SetInt("_SrcBlend", (int)BlendMode.One);
@@ -380,8 +369,10 @@ namespace Garena.TA.SSS
             _diffuseRT?.Release();
             _albedoRT?.Release();
             _lightingRT?.Release();
+            m_SSSDebugRT?.Release();
             CoreUtils.Destroy(_scatterMat);
-            m_CameraColorCopy?.Release();
+            CoreUtils.Destroy(debugMat);
+            
         }
     }
 }

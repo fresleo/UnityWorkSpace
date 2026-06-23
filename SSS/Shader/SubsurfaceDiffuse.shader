@@ -32,7 +32,8 @@ Shader "Hidden/SubsurfaceDiffuse"
             #pragma multi_compile_fog
 
             CBUFFER_START(UnityPerMaterial)
-                float4 _BaseColor_ST;
+                float4 _BaseColorMap_ST;
+                float4 _BaseColor;
                 float4 _KnightThicknessMap_ST;
                 float _Float0;
                 float _Phase;
@@ -40,7 +41,7 @@ Shader "Hidden/SubsurfaceDiffuse"
 
             // haven't defined param: _Thickness _BaseColor
 
-            sampler2D _BaseColor;
+            sampler2D _BaseColorMap;
             sampler2D _KnightThicknessMap;
 
 
@@ -97,19 +98,19 @@ Shader "Hidden/SubsurfaceDiffuse"
                 uint2 tileIndex = uint2(input.positionSS.xy) / 1;
                 //标准化结构方便后续采样，重建
                 PositionInputs posInput = GetPositionInput(input.positionSS.xy, _ScreenSize.zw, input.positionSS.z,
-                                                           input.positionSS.w, input.positionRWS.xyz,
-                                                           tileIndex);
+                                                       input.positionSS.w, input.positionRWS.xyz,
+                                                       tileIndex);
                 float3 PositionWS = GetAbsolutePositionWS(posInput.positionWS);
                 float3 V = GetWorldSpaceNormalizeViewDir(packedInput.positionWS);
                 float4 ScreenPosNorm = float4(posInput.positionNDC, packedInput.positionCS.zw);
                 float4 ClipPos = ComputeClipSpacePosition(ScreenPosNorm.xy, packedInput.positionCS.z) * packedInput.
-                    positionCS.w;
+                                                                            positionCS.w;
                 float4 ScreenPos = ComputeScreenPos(ClipPos, _ProjectionParams.x);
                 float3 NormalWS = packedInput.normalWS;
                 float3 TangentWS = packedInput.tangentWS.xyz;
                 float3 BitangentWS = input.tangentToWorld[1];
 
-                float3 Albedo = tex2D(_BaseColor, packedInput.uv1.xy).rgb;
+                float3 Albedo = tex2D(_BaseColorMap, packedInput.uv1.xy).rgb * _BaseColor;
                 // ------------------ indirectDiffuse ------------------
                 float3 IndirectDiffuse = float3(0, 0, 0);
                 irradianceSSS(NormalWS, IndirectDiffuse);
@@ -130,8 +131,8 @@ Shader "Hidden/SubsurfaceDiffuse"
                 float ShadowMask = 0;
                 DirectLightSSS(subsurfaceLight, DirectDiffuse, ShadowMask);
 
-                // float3 finalColor = DirectDiffuse * 0.5f + (IndirectDiffuse * 0.5f);
-                float3 finalColor = DirectDiffuse;
+                float3 finalColor = DirectDiffuse * 0.8f + (IndirectDiffuse * 0.2f);
+                // float3 finalColor = DirectDiffuse;
                 finalColor.b = max(finalColor.b, HALF_MIN);
                 // ShadowMask = max(ShadowMask, HALF_MIN);
                 ouputColor = float4(finalColor, ShadowMask);

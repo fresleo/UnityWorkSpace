@@ -152,7 +152,7 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
     float NDV = saturate(dot(viewXDirWS, sufsurfaceLighting.NormalWS));
 
     // NDV =(NDV +1)*.5;
-    half3 fresnelTerm = saturate(F_Schlick(_Fresnel0, NDV)) * _Smoothness;
+    half3 fresnelTerm = saturate(F_Schlick(_Fresnel0, NDV)) ;
 
     float distanceToCamera = length(sufsurfaceLighting.PositionRWS);
 
@@ -166,8 +166,10 @@ void DirectLightSSS(DirectSufsurfaceLighting sufsurfaceLighting, out float3 Dire
     float3 final = SSSColor * (1 - fresnelTerm) + (fresnelTerm);
 
     // ShadowMask = saturate(-((GetShadowAttenuation(sufsurfaceLighting) - 1) + NDL));
-    ShadowMask = step(saturate(GetShadowAttenuation(sufsurfaceLighting) * NDL),0.25);
-    // float Test = step(saturate(GetShadowAttenuation(sufsurfaceLighting) * NDL),0.25);
+    // ShadowMask = step(saturate(GetShadowAttenuation(sufsurfaceLighting) * NDL),0.02);
+    ShadowMask =1-smoothstep(0,0.5,saturate(GetShadowAttenuation(sufsurfaceLighting) * NDL));
+    
+    // float Test = (fresnelTerm);
     // final = float3(Test, Test, Test);
     DirectDiffuse = float3(final);
 }
