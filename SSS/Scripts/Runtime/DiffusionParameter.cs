@@ -6,10 +6,10 @@ using UnityEditor.Rendering.HighDefinition;
 namespace Garena.TA.SSS
 {
     [CreateAssetMenu(
-        fileName = "SSSResolveProfileParams",
-        menuName = "Rendering/Knight Profile Params",
+        fileName = "XKnightDiffusionParameter",
+        menuName = "Rendering/DiffusionParameter",
         order = 1100)]
-    public sealed class DiffusionProfileParam : ScriptableObject
+    public sealed class DiffusionParameter : ScriptableObject
     {
         [SerializeField] public Color scatteringColor = new Color(0.6f, 0.3f, 0.2f);
         [SerializeField] public float scatteringMultiplier = 1.0f;

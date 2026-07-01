@@ -5,8 +5,8 @@ using UnityEngine.Experimental.Rendering;
 
 namespace Garena.TA.SSS
 {
-    [CustomEditor(typeof(DiffusionProfileParam))]
-    public sealed class DiffusionProfileEditor : Editor
+    [CustomEditor(typeof(DiffusionParameter))]
+    public sealed class DiffusionParameterEditor : Editor
     {
         private const int DiscPreviewSize = 256;
         private const string DiscPreviewShaderName = "Hidden/DrawDiffusionProfile";
@@ -48,7 +48,7 @@ namespace Garena.TA.SSS
 
             GetOrCreateDiscPreviewMaterial();
             // Ensure preview is generated immediately on selection
-            DiscPreviewByShader((DiffusionProfileParam)target);
+            DiscPreviewByShader((DiffusionParameter)target);
             UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
             // Debug.Log("DiffusionProfileEditor enabled and disc preview material created.");
         }
@@ -63,7 +63,7 @@ namespace Garena.TA.SSS
             serializedObject.Update();
             showDebug = EditorGUILayout.Foldout(showDebug, "Debug Options", true);
 
-            var asset = (DiffusionProfileParam)target;
+            var asset = (DiffusionParameter)target;
             
             if (showDebug)
             {
@@ -136,7 +136,7 @@ namespace Garena.TA.SSS
         }
 
 
-        private void DiscPreviewByShader(DiffusionProfileParam asset)
+        private void DiscPreviewByShader(DiffusionParameter asset)
         {
             if (asset == null)
                 return;
@@ -163,7 +163,7 @@ namespace Garena.TA.SSS
             }
         }
 
-        private void DrawDiffuseionProffileGraph(DiffusionProfileParam asset)
+        private void DrawDiffuseionProffileGraph(DiffusionParameter asset)
         {
             GetOrCreateDiscPreviewMaterial().SetFloat("_MaxRadius", asset.InputMaxRadius);
             GetOrCreateDiscPreviewMaterial().SetVector("_ShapeParam", asset.InputShape / asset.InputShape.w);
@@ -171,7 +171,7 @@ namespace Garena.TA.SSS
             GUILayout.Space(4);
         }
 
-        private void DrawPreview(DiffusionProfileParam asset)
+        private void DrawPreview(DiffusionParameter asset)
         {
             Rect r = GUILayoutUtility.GetRect(DiscPreviewSize, DiscPreviewSize, GUILayout.ExpandWidth(false));
             EditorGUI.DrawPreviewTexture(r, asset.discPreviewTexture, GetOrCreateDiscPreviewMaterial(),
@@ -192,7 +192,7 @@ namespace Garena.TA.SSS
             }
         }
 
-        private void DrawTransmistPreview(DiffusionProfileParam asset)
+        private void DrawTransmistPreview(DiffusionParameter asset)
         {
             var mat = GetOrCreateTransmitMaterial();
             mat.SetVector("_TransmissionTint", asset.InputTransmissionTint);
@@ -224,7 +224,7 @@ namespace Garena.TA.SSS
             return _TransmistPreviewMaterial;
         }
 
-        private static void ReplaceSubAssetTexture(DiffusionProfileParam asset, ref RenderTexture current,
+        private static void ReplaceSubAssetTexture(DiffusionParameter asset, ref RenderTexture current,
             RenderTexture replacement, string name)
         {
             if (current != null)
@@ -242,7 +242,7 @@ namespace Garena.TA.SSS
                 AssetDatabase.AddObjectToAsset(current, asset);
         }
 
-        private static void ReplaceSubAssetTexture2D(DiffusionProfileParam asset, ref Texture2D current,
+        private static void ReplaceSubAssetTexture2D(DiffusionParameter asset, ref Texture2D current,
             Texture2D replacement, string name)
         {
             if (current != null)
@@ -277,7 +277,7 @@ namespace Garena.TA.SSS
 
         private void RegenerateDiscKernel()
         {
-            var asset = (DiffusionProfileParam)target;
+            var asset = (DiffusionParameter)target;
             asset.updateKernel();
 
             BurleyParameters burleyParams = new BurleyParameters();

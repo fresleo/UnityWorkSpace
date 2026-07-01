@@ -37,7 +37,7 @@ namespace Garena.TA.SSS
             return hash1 + (hash2 * 1566083941);
         }
 
-        private static uint GetDiffusionProfileHash(DiffusionProfileParam asset)
+        private static uint GetDiffusionProfileHash(DiffusionParameter asset)
         {
             string assetPath = AssetDatabase.GetAssetPath(asset);
 
@@ -54,7 +54,7 @@ namespace Garena.TA.SSS
             return (exponent << 23) | mantissa;
         }
 
-        internal static uint GenerateUniqueHash(DiffusionProfileParam asset)
+        internal static uint GenerateUniqueHash(DiffusionParameter asset)
         {
             uint hash = GetDiffusionProfileHash(asset);
 
@@ -68,7 +68,7 @@ namespace Garena.TA.SSS
             return hash;
         }
 
-        internal static void UpdateDiffusionProfileHashNow(DiffusionProfileParam profile)
+        internal static void UpdateDiffusionProfileHashNow(DiffusionParameter profile)
         {
             uint hash = profile.hash;
 

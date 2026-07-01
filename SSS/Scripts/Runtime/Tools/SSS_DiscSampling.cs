@@ -215,7 +215,7 @@ namespace Garena.TA.SSS
             if (AssetDatabase.LoadMainAssetAtPath(assetPath) != null)
                 AssetDatabase.DeleteAsset(assetPath);
 
-            var asset = ScriptableObject.CreateInstance<DiffusionProfileParam>();
+            var asset = ScriptableObject.CreateInstance<DiffusionParameter>();
             asset.name = "SSSResolveProfileParams";
             asset.scatteringColor = burleyParameters._scatteringColor;
             asset.scatteringMultiplier = burleyParameters._scatteringMultiplier;

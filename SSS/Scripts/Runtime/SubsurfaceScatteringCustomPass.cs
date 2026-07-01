@@ -38,7 +38,7 @@ namespace Garena.TA.SSS
 
         [Range(0, 1)] public float SSS_Strenth = 0; // 散射后乘回反照率(= 最终漫反射颜色)
 
-        public DiffusionProfileParam Profile;
+        public DiffusionParameter Profile;
 
 
         public bool DebugTexture = false;

@@ -40,7 +40,7 @@ namespace Garena.TA.SSS
         [SerializeField] private float _WorldScale = 0f;
         [SerializeField] private int _discImportanceCdfResolution = 1024;
         [SerializeField] private string _resolveParamsAssetPath = "Assets/SSS/SSSResolveProfileParams.asset";
-        [FormerlySerializedAs("_resolveParamsAsset")] [SerializeField] private DiffusionProfileParam resolveParam;
+        [FormerlySerializedAs("_resolveParamsAsset")] [SerializeField] private DiffusionParameter resolveParam;
 
         // ===== Preview =====
 
@@ -392,10 +392,10 @@ namespace Garena.TA.SSS
             //     EditorStyles.miniLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
-                resolveParam = (DiffusionProfileParam)EditorGUILayout.ObjectField(
+                resolveParam = (DiffusionParameter)EditorGUILayout.ObjectField(
                     new GUIContent("SSSResolveProfileParamsAsset"),
                     resolveParam,
-                    typeof(DiffusionProfileParam),
+                    typeof(DiffusionParameter),
                     false);
 
                 if (GUILayout.Button("加载", GUILayout.Width(70)))
@@ -507,7 +507,7 @@ namespace Garena.TA.SSS
             EditorGUILayout.Space();
         }
 
-        private void ApplyResolveParamsAsset(DiffusionProfileParam asset)
+        private void ApplyResolveParamsAsset(DiffusionParameter asset)
         {
             if (asset == null)
                 return;
