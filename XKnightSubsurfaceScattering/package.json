@@ -1,0 +1,15 @@
+{
+  "name": "com.xkningt.ssss",
+  "version": "1.0.0",
+  "displayName": "xknight-ssss HDRP",
+  "description": "Subsurface Scattering shader package for XKnight.",
+  "unity": "2022.3.47f1",
+  "keywords": [
+    "utility",
+    "tools"
+  ],
+  "author": {
+    "name": "TA.calvin",
+    "email": "fresleo777.gmail.com",
+  }
+}
