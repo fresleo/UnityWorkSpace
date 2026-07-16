@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: e3e3f4c505ad5d1418fa882e88cf711f
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures:
+  - _BaseMap: {instanceID: 0}
+  - _MetallicGlossMap: {instanceID: 0}
+  - _BumpMap: {instanceID: 0}
+  - _ReflectionCube: {instanceID: 0}
+  - _DistortTex: {instanceID: 0}
+  - _NoiseTex: {instanceID: 0}
+  - _DissolveTex: {instanceID: 0}
+  nonModifiableTextures: []
+  preprocessorOverride: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

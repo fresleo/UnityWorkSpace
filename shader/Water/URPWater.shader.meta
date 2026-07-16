@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e3e367349fb0bab48be2f8346926faa6
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures:
+  - _NormalMapA: {instanceID: 0}
+  - _NormalMapB: {instanceID: 0}
+  - _FlowMap: {instanceID: 0}
+  - _CausticsTex: {instanceID: 0}
+  - _CubemapTexture: {instanceID: 0}
+  nonModifiableTextures: []
+  preprocessorOverride: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

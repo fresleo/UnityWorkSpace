@@ -1,0 +1,44 @@
+﻿Shader "XKnight/Scene/MeshSkybox/Panoramic"
+{
+    Properties
+    {
+        _Tint ("Tint Color", Color) = (.5, .5, .5, .5)
+        [Gamma] _Exposure ("Exposure", Range(0, 4)) = 1.0
+        _Rotation ("Rotation", Range(0, 360)) = 0
+        [NoScaleOffset] _MainTex ("Spherical  (HDR)", 2D) = "grey" {}
+    }
+    
+    SubShader
+    {
+        Tags { "RenderType"="Background" "Queue"="Background" "PreviewType"="Skybox" }
+        
+        Cull Off ZWrite Off
+
+        Pass
+        {
+            Tags { "LightMode"="MeshSkybox" }
+            
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma target 2.0
+            
+            #include_with_pragmas "../Skybox.hlsl"
+            ENDHLSL
+        }
+
+        // Always pass 是为了 Inspector 的预览窗准备的，不能用来做正式渲染
+        Pass
+        {
+            Tags { "LightMode"="Always" }
+            
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma target 2.0
+            
+            #include_with_pragmas "../Skybox.hlsl"
+            ENDHLSL
+        }
+    }
+}

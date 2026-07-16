@@ -1,0 +1,18 @@
+﻿#pragma kernel PVSStatistic
+
+RWStructuredBuffer<int> _PVSStatisticBuffer;
+Texture2D<float> _PVSRT;
+int _CurPortalOffset;
+
+[numthreads(32,32,1)]
+void PVSStatistic(uint3 id : SV_DispatchThreadID)
+{
+    float rendererIDf = _PVSRT[id.xy];
+    int rendererID = floor(rendererIDf);
+    int index = rendererID / 32;
+    int bytes = 1 << (rendererID % 32);
+
+    InterlockedOr(_PVSStatisticBuffer[_CurPortalOffset + index], bytes);
+}
+
+
