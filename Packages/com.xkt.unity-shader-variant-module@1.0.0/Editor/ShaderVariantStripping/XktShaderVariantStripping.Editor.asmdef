@@ -1,0 +1,26 @@
+{
+    "name": "XktShaderVariantStripping.Editor",
+    "rootNamespace": "",
+    "references": [
+        "XktUnityShaderVariant.Runtime",
+        "XktShaderVariantStripping.Editor.Shared",
+        "Unity.Editor.RemoveShaderPostProcessor.Codegen"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.nuget.mono-cecil",
+            "expression": "",
+            "define": "ENABLE_KILL_OTHER_SHADER_STRIPPER"
+        }
+    ],
+    "noEngineReferences": false
+}

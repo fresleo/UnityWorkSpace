@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<AssetImportRules>
+    <TextureImporter>
+        <!-- 根据xkt项目整理规则 -->
+        <!-- ******************************************TextureImporterDefaultSetting**************************************************** -->
+        <!-- ******************************************TextureImporterDefaultSetting**************************************************** -->
+        <!-- DefaultSetting 是默认的设置
+           maxTextureSize_NormalMap和Textureformat_NormalMap是默认的normalMap设置
+           maxTextureSize_ShadowMask和extureformat_ShadowMask是默认的Shadowmask类型设置
+           maxTextureSize_Lightmap和Textureformat_Lightmap是默认的Lightmap设置          
+         -->
+        
+        <!-- ******************************************TextureImporterDefaultSetting**************************************************** -->
+        <DefaultSetting>
+            <setting isReadable='false' 
+                     mipmapEnabled='true'
+                     alphaSource ="FromInput"
+                     maxTextureSize='1024' Textureformat='ASTC_6x6'
+                     maxTextureSize_NormalMap="2048" Textureformat_NormalMap="ASTC_6x6"
+                     maxTextureSize_Shadowmask="2048" Textureformat_Shadowmask="ASTC_6x6"
+                     maxTextureSize_Lightmap="2048" Textureformat_Lightmap="ASTC_6x6"/>
+        </DefaultSetting>
+
+        <!-- ******************************************MaxTextureSizeSetting**************************************************** -->
+        <!--
+        <setting maxTextureSize ="1024" Platform="*"/>  所有平台平台设置
+        <setting maxTextureSize ="4096" Platform="PC"/>  pc平台设置
+        <setting maxTextureSize ="1024" Platform="Android | iPhone"/> android 和 iphone 平台设置
+        <Include path="*" FileKeyWord="" KeyWordRule="" TextureType=""/> 所有文件应用setting设置
+        
+        <Include path="Assets/Test1/" FileKeyWord="" KeyWordRule="" TextureType=""/>  Test1文件夹下的文件应用以上setting规则
+        
+        <Include path="Assets/Test2/" FileKeyWord="" KeyWordRule="" TextureType="NormalMap"/> Test2文件夹下TextureType类型为NormalMap的应用setting规则
+        
+        <Include path="Assets/Test3/" FileKeyWord="_N" KeyWordRule="EndWith" TextureType=""/> Test3文件夹下文件名后缀跟_N的应用setting规则  (KeyWordRule的取值可以是Include,BeginWith,EndWith)
+        
+        <Include path="Assets/Test4/" FileKeyWord="" KeyWordRule="" TextureType=""> Test4文件夹下文件但是不包含Test41下文件应用setting设置
+          <Exclude path="Assets/Test4/Test41 FileKeyWord="" KeyWordRule="" TextureType=""/">
+        </Include>
+        -->
+        
+        <!--
+        <setting maxTextureSize ="ignore"/>  表示忽略Test5下的maxTextureSize属性设置
+        <Include path="Assets/Test5/" FileKeyWord="" KeyWordRule=""/>
+        -->
+        
+        <MaxTextureSizeSetting>
+            
+            <TextureSize8192>
+                <setting maxTextureSize ="8192" Platform="*"/>
+                <Include path="Assets/OriginalRes/Timeline/" FileKeyWord="" KeyWordRule=""/>
+            </TextureSize8192>
+            
+            <TextureSize4096>
+                <setting maxTextureSize ="4096" Platform="PC"/>
+                <Include path="*" FileKeyWord="" KeyWordRule=""/>
+            </TextureSize4096>
+            
+            <TextureSize2048>
+                <setting maxTextureSize ="2048" Platform="Android | iPhone"/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/Home/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/Prop/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen02/Home/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen04/Prop/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen04/FinalMap/Scene_SiShen_FeiQiGongChang01_TimeLine/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen04/Build/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen02/Terrain/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Character/Player/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Effects/Textures/Tex_HUD/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_CeShi/Map/CeShi/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_CeShi/Scene_PVP_UI_Sky/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_CeShi/Scene_SiShen_House/Textures/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/Home/Textures/AO/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Spine/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen04/FinalMap/Scene_SiShen_FeiQiGongChang01/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_CeShi/Scene_SiShen_PVP/Textures/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/FinalMap/Scene_SiShen_DaDiTu_01_DayTime/" FileKeyWord="" KeyWordRule="" TextureType="Lightmap"/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/FinalMap/" FileKeyWord="" KeyWordRule="" TextureType="Lightmap"/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/FinalMap/Scene_SiShen_DaDiTu_01_TOD/" FileKeyWord="" KeyWordRule="" TextureType=""/>
+            </TextureSize2048>
+            
+            <!-- ****************************************** Default NormalMap,Shadowmmask,Lightmap Size**************************************************** -->
+            <TextureSizeMix>
+                <setting maxTextureSize ="2048" Platform="Android | iPhone"/>
+                <setting maxTextureSize ="4096" Platform="PC"/>
+                <Include path="*" FileKeyWord="" KeyWordRule="" TextureType="NormalMap"/>
+                <Include path="*" FileKeyWord="" KeyWordRule="" TextureType="Shadowmask"/>
+                <Include path="*" FileKeyWord="" KeyWordRule="" TextureType="Lightmap"/>
+            </TextureSizeMix>
+            
+            <!-- ****************************************** NormalMap Size**************************************************** -->
+            <TextureSize2048>
+                <setting maxTextureSize ="2048" Platform="Android | iPhone" />
+                <Include path = "Assets/OriginalRes/Character/Player/" FileKeyWord="" KeyWordRule="" TextureType="NormalMap"/>
+                <Include path = "Assets/OriginalRes/Scenes/Model/Scene09/Scene09_JuQing/" FileKeyWord="" KeyWordRule="" TextureType="NormalMap"/>
+                <Include path = "Assets/OriginalRes/Scenes/Model/Scene09/Scene09_Object/Textures/" FileKeyWord="" KeyWordRule="" TextureType="NormalMap"/>
+                <Include path = "Assets/OriginalRes/Scenes/Model/Scene_SiShen01/" FileKeyWord="" KeyWordRule="" />
+            </TextureSize2048>
+            
+            <!-- ****************************************** Shadowmask Size**************************************************** -->
+            <ShadowMap1024>
+                <setting maxTextureSize ="1024" Platform="Android | iPhone"/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_CeShi/Map/Scene_SiShen_PVP/" FileKeyWord="" KeyWordRule="" TextureType="Shadowmask"/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/FinalMap/" FileKeyWord="" KeyWordRule="" TextureType="Shadowmask"/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen03/FinalMap/Scene03_MiGong/" FileKeyWord="" KeyWordRule="" TextureType="Shadowmask"/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen_PVP/" FileKeyWord="" KeyWordRule="" TextureType="Shadowmask"/>
+            </ShadowMap1024>
+
+            <TextureSizeMix>
+                <setting maxTextureSize ="1024" Platform="*"/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/FinalMap/Scene_SiShen_DaDiTu_01_JuQing01/" FileKeyWord="" KeyWordRule="" TextureType="Lightmap"/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/FinalMap/Scene_SiShen_DaDiTu_01_SuoXiaoBanBen/" FileKeyWord="" KeyWordRule="" TextureType="Lightmap"/>
+            </TextureSizeMix>
+            
+            <TextureSize256>
+                <setting maxTextureSize ="256" Platform="*"/>
+                <Include path="Assets/OriginalRes/Character/Sdf/" FileKeyWord="" KeyWordRule=""/>
+            </TextureSize256>
+
+        </MaxTextureSizeSetting>
+
+        <!-- ******************************************TextureformatSetting**************************************************** -->
+        <TextureformatSetting>
+
+            <!-- ******************************************DefaultSetting**************************************************** -->
+            <TextureFormat>
+                <setting Textureformat ="RGBA32" Platform="PC"/>
+                <Include path="*" FileKeyWord="" KeyWordRule=""/>
+            </TextureFormat>
+
+            <!-- ******************************************Normalmal shadowmask Format**************************************************** -->
+            <NormapMapFormatMix>
+                <setting Textureformat ="ASTC_6x6" Platform="Android | iPhone"/>
+                <Include path="*" FileKeyWord="" KeyWordRule="" TextureType="NormalMap"/>
+                <Include path="*" FileKeyWord="" KeyWordRule="" TextureType="Shadowmask"/>
+            </NormapMapFormatMix>
+
+            <!-- ******************************************LightmapFormat**************************************************** -->
+            <LightmapFormat>
+                <setting Textureformat ="RGBAHalf" Platform="PC"/>
+                <Include path="*" FileKeyWord="" KeyWordRule="" TextureType="Lightmap"/>
+            </LightmapFormat>
+
+            <!-- ******************************************NormalMapFormat**************************************************** -->
+            <NormalMapFormatASTC4>
+                <setting Textureformat ="ASTC_4x4" Platform="Android | iPhone"/>
+                <Include path="Assets/OriginalRes/Character/Player/" FileKeyWord="" KeyWordRule="" TextureType="NormalMap"/>
+            </NormalMapFormatASTC4>
+            
+            <TextureFormatASTC4>
+                <setting Textureformat ="ASTC_4x4" Platform="Android | iPhone"/>
+                <Include path="Assets/OriginalRes/render/sky/Cubemap/" FileKeyWord="" KeyWordRule=""/>
+            </TextureFormatASTC4>
+
+            <TextureFormatMix>
+                <setting Textureformat ="R8" Platform="Android | iPhone"/>
+                <Include path="Assets/OriginalRes/Character/Sdf/" FileKeyWord="" KeyWordRule=""/>
+            </TextureFormatMix>
+            
+        </TextureformatSetting>
+        
+        <!-- ******************************************MipMapSetting**************************************************** -->
+        <MipmapSetting>
+            
+            <!-- ******************************************MipmapDisable**************************************************** -->
+            <MipmapDisable>
+                <setting mipmapEnabled ="false" />
+                <Include path="Assets/OriginalRes/render/sky/Cubemap/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Spine/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Effects/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Timeline/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Effects/Textures/Knife/" FileKeyWord="" KeyWordRule=""/>
+            </MipmapDisable>
+            
+        </MipmapSetting>
+
+        <!-- ******************************************isReadableSetting**************************************************** -->
+        <isReadableSetting>
+            <!-- ******************************************Readable**************************************************** -->
+            <Readable>
+                <setting isReadable ="true"/>
+                <Include path="Assets/OriginalRes/Effects/Textures/Shape/" FileKeyWord="" KeyWordRule=""/>
+            </Readable>
+        </isReadableSetting>
+
+        <!-- ******************************************npotScaleSetting**************************************************** -->
+        <npotScaleSetting>
+            <npotScaleNone>
+                <setting npotScale ="None"/>
+                <Include path="Assets/OriginalRes/Spine/" FileKeyWord="" KeyWordRule="" />
+            </npotScaleNone>
+        </npotScaleSetting>
+        
+        <!-- ******************************************alphaIsTransparencySetting**************************************************** -->
+        <alphaIsTransparencySetting>
+            <!-- ******************************************alphaIsTransparency**************************************************** -->
+            <alphaIsTransparencyTrue>
+                <setting alphaIsTransparency ="true"/>
+                <Include path="Assets/OriginalRes/Spine/" FileKeyWord="" KeyWordRule="" />
+            </alphaIsTransparencyTrue>
+        </alphaIsTransparencySetting>
+
+    </TextureImporter>
+
+    <ModelImporter>
+        <!-- ******************************************ModelImporterDefaultSetting**************************************************** -->
+        <DefaultSetting>
+            <setting materialImportMode = "None"  isReadable="false" meshCompression="Off" animationCompression="Optimal" animationRotationError="0.1" animationPositionError ="0.1" removeConstantScaleCurves="true"/>
+        </DefaultSetting>
+
+        <!-- ******************************************MeshReadableSetting**************************************************** -->
+        <readableSetting>
+            <!--  ******************************************Readable**********************************************  -->
+            <Readable>
+                <setting isReadable="true" />
+                <Include path="Assets/OriginalRes/Character/Monster/centipede/Models/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Character/Monster/fishbone_d/Models/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Character/Player/kuchikibyakuya/Models/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Character/Player/kurosakiichigo/Models/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Effects/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/BaiMo/CeShi/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/BaiMo/PoSuiCeShi/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/Build/Models/" FileKeyWord="" KeyWordRule=""/>
+                <Include path="Assets/OriginalRes/Scenes/Model/Scene_SiShen01/Prop/Models/" FileKeyWord="" KeyWordRule=""/>
+            </Readable>
+        </readableSetting>
+        
+        <!-- ******************************************MeshCompressionSetting**************************************************** -->
+        <meshCompressionSetting>
+            <MediumCompression>
+                <setting meshCompression="Medium"/>
+                <Include path="Assets/OriginalRes/Effects/" FileKeyWord="" KeyWordRule="Include"/>
+            </MediumCompression>
+        </meshCompressionSetting>
+        
+        
+        <!-- ******************************************ImportAnimationSetting**************************************************** -->
+        
+        <!-- ******************************************DontImportAnimation**************************************************** -->
+        <!--
+        <importAnimationSetting>
+            <DontImportAnimation>
+                <setting importAnimation="false"/>
+                <Include path="" FileKeyWord="" KeyWordRule="" />
+            </DontImportAnimation>
+        </importAnimationSetting>
+        -->
+        
+        <!-- ******************************************animationCompressionSetting**************************************************** -->
+        <animationCompressionSetting>
+            
+            <!-- ******************************************Off**************************************************** -->
+            <animationCompressionOff>
+                <setting animationCompression="Off"/>
+                <Include path="Assets/OriginalRes/Timeline/BattleTimeline/" FileKeyWord="" KeyWordRule="" />
+                <Include path="Assets/OriginalRes/Timeline/" FileKeyWord="" KeyWordRule="" />
+            </animationCompressionOff>
+            
+        </animationCompressionSetting>
+
+        <!-- ******************************************materialImportModeSetting**************************************************** -->
+        <materialImportModeSetting>
+            <!-- ******************************************ImportViaMaterialDescription**************************************************** -->
+            <materialImportMode>
+                <setting materialImportMode="ImportViaMaterialDescription"/>
+                <Include path="Assets/OriginalRes/Character/" FileKeyWord="" KeyWordRule="" />
+            </materialImportMode>
+            
+        </materialImportModeSetting>
+
+        <!-- ******************************************importBlendShapeNormalsSetting**************************************************** -->
+        <importBlendShapeNormalsSetting>
+
+            <!-- ******************************************importBlendShapeNormalsNone**************************************************** -->
+            <importBlendShapeNormalsNone>
+                <setting importBlendShapeNormals="None"/>
+                <Include path="Assets/OriginalRes/Character/" FileKeyWord="" KeyWordRule="" />
+            </importBlendShapeNormalsNone>
+        </importBlendShapeNormalsSetting>
+
+        <animationRotationErrorSetting>
+            <!-- ******************************************importBlendShapeNormalsNone**************************************************** -->
+            <animationRotationErrorSetting0.5>
+                <setting animationRotationError="0.5"/>
+                <Include path="Assets/OriginalRes/Effects/Mesh/LFR/" FileKeyWord="" KeyWordRule="" />
+                <Include path="Assets/OriginalRes/Effects/Mesh/Player/Luqiya/" FileKeyWord="" KeyWordRule="" />
+            </animationRotationErrorSetting0.5>
+        </animationRotationErrorSetting>
+
+        <animationPositionErrorSetting>
+            <!-- ******************************************importBlendShapeNormalsNone**************************************************** -->
+            <animationPositionErrorSetting0.5>
+                <setting animationPositionError="0.5"/>
+                <Include path="Assets/OriginalRes/Effects/Mesh/Player/Luqiya/" FileKeyWord="" KeyWordRule="" />
+            </animationPositionErrorSetting0.5>
+        </animationPositionErrorSetting>
+
+        <removeConstantScaleCurvesSetting>
+            <!-- ******************************************importBlendShapeNormalsNone**************************************************** -->
+            <removeConstantScaleCurvesFalse>
+                <setting removeConstantScaleCurves="false"/>
+                <Include path="Assets/OriginalRes/Effects/Mesh/Player/Luqiya/" FileKeyWord="" KeyWordRule="" />
+            </removeConstantScaleCurvesFalse>
+        </removeConstantScaleCurvesSetting>
+        
+    </ModelImporter>
+
+    <AudioImporter>
+        <!--  ******************************************Default******************************************************  -->
+        <DefaultSetting>
+            <setting loadType="CompressedInMemory" />
+        </DefaultSetting>
+        <!--  ******************************************Streaming****************************************************  -->
+        <!--
+        <StreamingSetting>
+            <Streaming>
+                <setting loadType="Streaming"/>
+                <Include path="" FileKeyWord="" KeyWordRule=""/>
+                <FileLength size="1000" KeyWordRule="greater"/>
+            </Streaming>
+        </StreamingSetting>
+        -->
+
+    </AudioImporter>
+</AssetImportRules>	

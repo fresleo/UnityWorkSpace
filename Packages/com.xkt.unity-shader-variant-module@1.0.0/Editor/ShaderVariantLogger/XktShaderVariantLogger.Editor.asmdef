@@ -1,0 +1,19 @@
+{
+    "name": "XktShaderVariantLogger.Editor",
+    "rootNamespace": "",
+    "references": [
+        "XktUnityShaderVariant.Runtime",
+        "XktShaderVariantStripping.Editor.Shared"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

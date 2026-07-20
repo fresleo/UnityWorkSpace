@@ -1,0 +1,191 @@
+// 1) CPU Chunk:C# 上传 _CandidateIndices 并设 _CounterAndArgsBuffer[2]=0 → Cull(写 _VisibleIndexBuffer 且 InterlockedAdd _CounterAndArgsBuffer[0]/[2])
+// 2) GPU Chunk:C# 设 _CounterAndArgsBuffer[2]=0 → ChunkAndInstanceCull(chunk 可见性 + 实例剔除)
+// 实例数据为 TRS(32B/实例)
+// visibleIndexBuffer 编码：bits[31:30]=LOD 等级(0/1/2)，bits[29:0]=实例下标。
+#pragma kernel Cull
+#pragma kernel ChunkAndInstanceCull
+
+float4 _FrustumPlanes[6];
+float3 _CameraPos;
+float _MaxDistance;
+// 预计算平方，避免每个实例的 sqrt(distance) 范围检测
+float _MaxDistanceSq;
+float _LOD0End;
+float _LOD1End;
+float _LOD1Density;
+float _LOD2Density;
+
+struct MeshInstanceTrs
+{
+    float4 positionScale;
+    float4 rotation;
+};
+
+StructuredBuffer<MeshInstanceTrs> _MeshInstanceTrsBuffer;
+RWStructuredBuffer<uint> _CandidateIndices;
+RWStructuredBuffer<uint> _VisibleIndexBuffer;
+// [0]=counter, [1..5]=draw args (indexCount, instanceCount, startIndex, baseVertex, startInstance);核内写 [0] 与 [2]
+RWStructuredBuffer<uint> _CounterAndArgsBuffer;
+
+// GPU Chunk 用(仅 ChunkAndInstanceCull)。。
+StructuredBuffer<uint> _ChunkPackedMetaAndIndices;
+uint _ChunkCount;
+
+float MeshInstanceHash01(float3 p, uint id)
+{
+    uint h = id * 2654435761u;
+    uint ix = (uint)floor(p.x * 1000.0);
+    uint iz = (uint)floor(p.z * 1000.0);
+    h ^= ix * 2246822519u;
+    h ^= iz * 3266489917u;
+    h = (h ^ (h >> 16)) * 2246822519u;
+    h ^= h >> 13;
+    return (float)(h & 0xFFFFFFu) / 16777216.0;
+}
+
+float LodKeepProbability(float dist)
+{
+    if (dist <= _LOD0End)
+        return 1.0;
+    float span1 = max(_LOD1End - _LOD0End, 1e-4);
+    if (dist <= _LOD1End)
+    {
+        float t = saturate((dist - _LOD0End) / span1);
+        t = t * t * (3.0 - 2.0 * t);
+        return lerp(1.0, _LOD1Density, t);
+    }
+    float span2 = max(_MaxDistance - _LOD1End, 1e-4);
+    float t2 = saturate((dist - _LOD1End) / span2);
+    t2 = t2 * t2 * (3.0 - 2.0 * t2);
+    return lerp(_LOD1Density, _LOD2Density, t2);
+}
+
+// 根据实际距离确定 LOD 等级
+int ComputeLodLevel(float dist)
+{
+    if (dist < _LOD0End) return 0;
+    if (dist < _LOD1End) return 1;
+    return 2;
+}
+
+bool PointInFrustum(float3 p)
+{
+    for (int i = 0; i < 6; i++)
+    {
+        float4 plane = _FrustumPlanes[i];
+        if (dot(plane.xyz, p) + plane.w < 0.0) return false;
+    }
+    return true;
+}
+
+bool PassesLOD(float3 pos, float dist, uint instanceIndex)
+{
+    float p = LodKeepProbability(dist);
+    if (p >= 1.0)
+        return true;
+    if (p <= 0.0)
+        return false;
+    return MeshInstanceHash01(pos, instanceIndex) < p;
+}
+
+// ---------- 流程 1:CPU Chunk 时使用 ----------
+[numthreads(256, 1, 1)]
+void Cull(uint3 id : SV_DispatchThreadID)
+{
+    uint numCandidates;
+    uint stride;
+    _CandidateIndices.GetDimensions(numCandidates, stride);
+    if (id.x >= numCandidates)
+        return;
+
+    uint instanceIndex = _CandidateIndices[id.x];
+    MeshInstanceTrs t = _MeshInstanceTrsBuffer[instanceIndex];
+    float3 pos = t.positionScale.xyz;
+
+    // 用平方距离做范围剔除
+    float3 d = pos - _CameraPos;
+    float distSq = dot(d, d);
+    if (distSq > _MaxDistanceSq)
+        return;
+    if (!PointInFrustum(pos))
+        return;
+    float dist = sqrt(distSq);
+    if (!PassesLOD(pos, dist, instanceIndex))
+        return;
+
+    // 将 LOD 等级打包进高 2 位
+    uint lodLevel = (uint)ComputeLodLevel(dist);
+    uint idx;
+    InterlockedAdd(_CounterAndArgsBuffer[0], 1, idx);
+    _VisibleIndexBuffer[idx] = (lodLevel << 30u) | instanceIndex;
+    InterlockedAdd(_CounterAndArgsBuffer[2], 1);
+}
+
+// ---------- 流程 2:GPU Chunk 时使用 ----------
+static const int k_PlaneOrder[6] = { 4, 5, 0, 1, 2, 3 };
+
+// distance() 拆为 dot(delta,delta)，length(extents) 保留单次 sqrt
+bool ChunkInFrustum(float3 center, float3 extents)
+{
+    float3 delta = center - _CameraPos;
+    float distSq = dot(delta, delta);
+    float extentLen = sqrt(dot(extents, extents));
+    float maxDist = _MaxDistance + extentLen;
+    if (distSq > maxDist * maxDist)
+        return false;
+    float3 minP = center - extents;
+    float3 maxP = center + extents;
+    for (int i = 0; i < 6; i++)
+    {
+        float4 p = _FrustumPlanes[k_PlaneOrder[i]];
+        float nx = p.x, ny = p.y, nz = p.z, d = p.w;
+        float vx = (nx >= 0) ? maxP.x : minP.x;
+        float vy = (ny >= 0) ? maxP.y : minP.y;
+        float vz = (nz >= 0) ? maxP.z : minP.z;
+        if (nx * vx + ny * vy + nz * vz + d < 0.0) return false;
+    }
+    return true;
+}
+
+[numthreads(256, 1, 1)]
+void ChunkAndInstanceCull(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _ChunkCount)
+        return;
+
+    uint boundsBase = id.x * 8u;
+    float4 center = float4(asfloat(_ChunkPackedMetaAndIndices[boundsBase + 0u]), asfloat(_ChunkPackedMetaAndIndices[boundsBase + 1u]), asfloat(_ChunkPackedMetaAndIndices[boundsBase + 2u]), asfloat(_ChunkPackedMetaAndIndices[boundsBase + 3u]));
+    float4 extents = float4(asfloat(_ChunkPackedMetaAndIndices[boundsBase + 4u]), asfloat(_ChunkPackedMetaAndIndices[boundsBase + 5u]), asfloat(_ChunkPackedMetaAndIndices[boundsBase + 6u]), asfloat(_ChunkPackedMetaAndIndices[boundsBase + 7u]));
+    if (!ChunkInFrustum(center.xyz, extents.xyz))
+        return;
+
+    uint startsBase = _ChunkCount * 8u;
+    uint startIn = _ChunkPackedMetaAndIndices[startsBase + id.x];
+    uint endIn = _ChunkPackedMetaAndIndices[startsBase + id.x + 1u];
+
+    uint indicesBase = startsBase + _ChunkCount + 1u;
+    for (uint k = startIn; k < endIn; k++)
+    {
+        uint instanceIndex = _ChunkPackedMetaAndIndices[indicesBase + k];
+        MeshInstanceTrs t = _MeshInstanceTrsBuffer[instanceIndex];
+        float3 pos = t.positionScale.xyz;
+
+        // 平方距离剔除
+        float3 dv = pos - _CameraPos;
+        float distSq = dot(dv, dv);
+        if (distSq > _MaxDistanceSq)
+            continue;
+        if (!PointInFrustum(pos))
+            continue;
+        float dist = sqrt(distSq);
+        if (!PassesLOD(pos, dist, instanceIndex))
+            continue;
+
+        // 将 LOD 等级打包进高 2 位
+        uint lodLevel = (uint)ComputeLodLevel(dist);
+        uint idx;
+        InterlockedAdd(_CounterAndArgsBuffer[0], 1, idx);
+        _VisibleIndexBuffer[idx] = (lodLevel << 30u) | instanceIndex;
+        InterlockedAdd(_CounterAndArgsBuffer[2], 1);
+    }
+}

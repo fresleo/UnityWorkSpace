@@ -1,0 +1,8 @@
+{
+  "name": "xkt.inspector",
+  "displayName": "XKT Inspector",
+  "description": "对 Unity 的 Inspector 扩展",
+  "category": "Editor",
+  "version": "0.0.1",
+  "unity": "2022.3"
+}

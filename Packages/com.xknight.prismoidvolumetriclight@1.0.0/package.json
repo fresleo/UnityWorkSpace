@@ -1,0 +1,7 @@
+{
+  "name": "com.xknight.prismoidvolumetriclight",
+  "version": "1.0.0",
+  "displayName": "Prismoidvolumetriclight",
+  "description": "A local Unity package prismoidvolumetriclight",
+  "unity": "2022.3"
+}

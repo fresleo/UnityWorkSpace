@@ -1,0 +1,194 @@
+﻿// dllmain.cpp : 定义 DLL 应用程序的入口
+
+#include "stdlib.h"
+#include "UnityPluginHeaders/IUnityProfilerCallbacks.h"
+#include <iostream>
+#include <fstream>
+#include <mutex>
+
+// 依赖于平台
+long GetThreadId();
+
+static IUnityProfilerCallbacks* s_UnityProfilerCallbacks = NULL;
+
+static bool s_executeFlag = false;
+static int s_frameIndex = 0;
+static std::string s_filename = "Variant.log"; // 日志文件
+static int warmupShaderCollectionLevel = -1; // 预热着色器集合级别
+static long warmupShaderThread = -1; // 预热着色器线程ID
+static std::mutex mtx; // 互斥锁
+
+
+// ShaderCompileGPUProgram 写入文件
+static void WriteFileShaderCompileGPUProgram(const UnityProfilerMarkerData* eventData)
+{
+    mtx.lock();
+
+    std::ofstream file_out;
+    file_out.open(s_filename, std::ios_base::app);
+    file_out << s_frameIndex << "," <<
+        // shader name
+        reinterpret_cast<const char*>(eventData[0].ptr) << "," << "0.0,";
+
+    if (warmupShaderCollectionLevel > 0)
+    {
+        file_out << "True" << ",";
+    }
+    else
+    {
+        file_out << "False" << ",";
+    }
+
+    // pass
+    file_out << reinterpret_cast<const char*>(eventData[1].ptr) << "," <<
+        // stage
+        "EditorCompile," <<
+        // keyword
+        reinterpret_cast<const char*>(eventData[2].ptr) << std::endl;
+
+    file_out.close();
+
+    mtx.unlock();
+}
+
+// ShaderCreateGPUProgram 写入文件
+static void WriteFileShaderCreateGPUProgram(const UnityProfilerMarkerData* eventData)
+{
+    mtx.lock();
+
+    std::ofstream file_out;
+    file_out.open(s_filename, std::ios_base::app);
+    file_out << s_frameIndex << "," <<
+        // shader name
+        reinterpret_cast<const char*>(eventData[0].ptr) << "," << "0.0,";
+
+    if (warmupShaderCollectionLevel > 0)
+    {
+        file_out << "True" << ",";
+    }
+    else
+    {
+        file_out << "False" << ",";
+    }
+
+    // pass
+    file_out << reinterpret_cast<const char*>(eventData[1].ptr) << "," <<
+        // stage
+        reinterpret_cast<const char*>(eventData[2].ptr) << "," <<
+        // keyword
+        reinterpret_cast<const char*>(eventData[3].ptr) << std::endl;
+
+    file_out.close();
+
+    mtx.unlock();
+}
+
+// 处理 Profiler 事件的回调
+static void UNITY_INTERFACE_API OnProfilerEvent(
+    const UnityProfilerMarkerDesc* markerDesc, UnityProfilerMarkerEventType eventType, unsigned short eventDataCount,
+    const UnityProfilerMarkerData* eventData, void* userData)
+{
+    if (!s_executeFlag) { return; }
+
+    switch (eventType)
+    {
+    case kUnityProfilerMarkerEventTypeBegin:
+        {
+            if (warmupShaderCollectionLevel >= 0 && warmupShaderThread == GetThreadId())
+            {
+                ++warmupShaderCollectionLevel;
+            }
+
+            if (eventDataCount == 3 &&
+                strncmp(markerDesc->name, "Shader.CompileGPUProgram", 24) == 0)
+            {
+                WriteFileShaderCompileGPUProgram(eventData);
+            }
+            else if (eventDataCount == 4 &&
+                strncmp(markerDesc->name, "Shader.CreateGPUProgram", 23) == 0)
+            {
+                WriteFileShaderCreateGPUProgram(eventData);
+            }
+            else if (strncmp(markerDesc->name, "ShaderVariantCollection.WarmupShaders", 37) == 0)
+            {
+                warmupShaderCollectionLevel = 0;
+                warmupShaderThread = GetThreadId();
+            }
+        }
+        break;
+
+    case kUnityProfilerMarkerEventTypeEnd:
+        {
+            if (warmupShaderCollectionLevel >= 0 && warmupShaderThread == GetThreadId())
+            {
+                --warmupShaderCollectionLevel;
+            }
+        }
+        break;
+    }
+}
+
+// 设置创建 Marker 的回调
+static void UNITY_INTERFACE_API SetupCreateMarkerCallback(const UnityProfilerMarkerDesc* markerDesc, void* userData)
+{
+    if (strncmp(markerDesc->name, "Shader.CompileGPUProgram", 24) == 0 ||
+        strncmp(markerDesc->name, "Shader.CreateGPUProgram", 23) == 0 ||
+        strncmp(markerDesc->name, "ShaderVariantCollection.WarmupShaders", 37) == 0)
+    {
+        s_UnityProfilerCallbacks->RegisterMarkerEventCallback(markerDesc, OnProfilerEvent, NULL);
+    }
+}
+
+
+// 真正的 unity 程序入口 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+static bool s_IsLoadedPlugin = false;
+
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces)
+{
+    if (!s_IsLoadedPlugin)
+    {
+        s_UnityProfilerCallbacks = unityInterfaces->Get<IUnityProfilerCallbacks>();
+        s_UnityProfilerCallbacks->RegisterCreateMarkerCallback(&SetupCreateMarkerCallback, NULL);
+        s_IsLoadedPlugin = true;
+    }
+}
+
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
+{
+    if (s_IsLoadedPlugin)
+    {
+        s_UnityProfilerCallbacks->UnregisterCreateMarkerCallback(&SetupCreateMarkerCallback, NULL);
+        s_UnityProfilerCallbacks->UnregisterMarkerEventCallback(NULL, &OnProfilerEvent, NULL);
+        s_IsLoadedPlugin = false;
+    }
+}
+
+// 暴露给外面的接口 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+extern "C" void UNITY_INTERFACE_EXPORT _ShaderCompileWatcherForEditorSetupFile(const char* file)
+{
+    s_filename = file;
+    std::ofstream file_out;
+    file_out.open(s_filename, std::ios_base::out);
+    file_out << "frameIdx,Shader,exec(ms),isWarmupCall,pass,stage,keyword," << std::endl;
+    file_out.close();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT const char* _ShaderCompileWatcherForEditorGetCurrentFile()
+{
+    return s_filename.c_str();
+}
+
+extern "C" void UNITY_INTERFACE_EXPORT _ShaderCompileWatcherForEditorSetFrame(int idx)
+{
+    s_frameIndex = idx;
+}
+
+extern "C" void UNITY_INTERFACE_EXPORT _ShaderCompileWatcherForEditorSetEnable(bool enable)
+{
+    s_executeFlag = enable;
+}
+
+extern "C" bool UNITY_INTERFACE_EXPORT _ShaderCompileWatcherForEditorGetEnable(bool enable)
+{
+    return s_executeFlag;
+}

@@ -1,0 +1,7 @@
+{
+  "name": "stencil-debugger",
+  "displayName": "Stencil Debugger",
+  "version": "1.1.0",
+  "unity": "2022.3",
+  "description": "Stencil Debugger 是1个让模版缓冲区在 Unity 中可视化的工具，它可以更好的帮助我们理解和调试 Stencil。"
+}

@@ -1,0 +1,30 @@
+{
+    "name": "XKT.TOD.Editor",
+    "rootNamespace": "",
+    "references": [
+        "XKT.TOD.Runtime",
+        "Unity.EditorCoroutines.Editor",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Core.Editor",
+        "GameModules",
+        "Unity.RenderPipelines.Universal.Editor",
+        "Unity-Pie.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "unity-pie",
+            "expression": "0.1.0",
+            "define": "UNITY_PIE_EDITOR"
+        }
+    ],
+    "noEngineReferences": false
+}

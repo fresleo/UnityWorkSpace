@@ -1,0 +1,7 @@
+{
+  "name": "shader-hot-swap",
+  "displayName": "Shader Hot Swap",
+  "description": "方便测试用的着色器热切换工具",
+  "version": "0.0.1",
+  "unity": "2022.3"
+}

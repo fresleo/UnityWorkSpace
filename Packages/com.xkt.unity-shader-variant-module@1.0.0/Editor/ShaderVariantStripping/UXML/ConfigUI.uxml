@@ -1,0 +1,26 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="false">
+    <ui:Toggle label="启用剥离" name="Enabled" style="margin-left: 10px;" />
+    <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
+        <ui:Toggle label="启用日志" name="LogEnable" tooltip="日志文件被放置在 &quot; ./ShaderVariants/Builds &quot;" style="margin-left: 10px; margin-bottom: 15px;" />
+        <ui:Button text="重新初始化" name="ResetInitializeBtn" tooltip="会重新收集当前工程的着色器变体集合，如果工程配置有变化，且没重启过编辑器的话，手动点一下这里。" display-tooltip-when-elided="true" />
+        <ui:Button text="清理日志" parse-escape-sequences="true" display-tooltip-when-elided="true" name="ClearLogBtn" />
+    </ui:VisualElement>
+    <ui:Foldout text="高级" style="margin-left: 10px; flex-shrink: 0;">
+        <ui:Toggle label="严格变体剥离" name="StrictVariantStripping" tooltip="启用严格模式 -&gt; 如果着色器不在 ShaderVariantColleciton 中，则删除所有变体。" />
+        <ui:Toggle label="禁用 Unity 剥离" name="DisableUnityStrip" tooltip="禁用 &quot; IPreprocessShaders &quot; 通过编辑在 Unity/UnityEngine/UnityEditor 命名空间下的 IL。" />
+        <uie:IntegerField label="脚本执行顺序" value="42" name="ExecuteOrder" tooltip="IProcessShaders 的顺序" />
+        <ui:VisualElement style="flex-direction: row; margin-top: 3px;">
+            <ui:VisualElement style="width: 130px;" />
+            <ui:Button text="最小" display-tooltip-when-elided="true" name="ExecOrderMinBtn" style="width: 40px;" />
+            <ui:Button text="最大" display-tooltip-when-elided="true" name="ExecOrderMaxBtn" style="width: 40px;" />
+        </ui:VisualElement>
+        <ui:Toggle label="忽略仅在特定阶段中使用的关键字" tooltip="剥离条件更宽松，能减少被误剥离的可能性" name="IgnoreStgeOnlyKeyword" />
+        <ui:Button text="[Debug] IPreprocessShaders 列表" display-tooltip-when-elided="true" name="DebugListProcessorBtn" style="width: 200px;" />
+        <ui:Button text="[Debug] 着色器关键字列表" parse-escape-sequences="true" display-tooltip-when-elided="true" name="DebugShaderKeywords" style="width: 200px;" />
+    </ui:Foldout>
+    <ui:Label text="排除剥离的变体集" display-tooltip-when-elided="true" name="Label" style="margin-left: 10px;" />
+    <ui:ScrollView style="margin-left: 20px;">
+        <ui:ListView focusable="true" name="ExcludeList" reorderable="true" item-height="20" />
+        <ui:Button text="添加 ShaderVariantCollection" display-tooltip-when-elided="true" name="AppendExcludeBtn" />
+    </ui:ScrollView>
+</ui:UXML>

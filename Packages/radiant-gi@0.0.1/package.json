@@ -1,0 +1,7 @@
+{
+  "name": "radiant-gi",
+  "displayName": "RadiantGI",
+  "description": "通过后处理实现的基于辐照度的实时GI",
+  "version": "0.0.1",
+  "unity": "2022.3"
+}

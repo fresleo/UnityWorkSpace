@@ -1,0 +1,7 @@
+{
+  "name": "toon.post.processing",
+  "description": "卡通后处理",
+  "version": "0.0.1",
+  "unity": "2022.3",
+  "displayName": "Toon Post-Processing"
+}

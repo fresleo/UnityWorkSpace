@@ -1,0 +1,7 @@
+{
+  "name": "xkt.mesh.instance.render",
+  "displayName": "MeshInstanceRender",
+  "description": "Mesh 实例化渲染，使用 GPU Instancing，支持 CPU 或 GPU 剔除",
+  "version": "0.0.1",
+  "unity": "2022.3"
+}

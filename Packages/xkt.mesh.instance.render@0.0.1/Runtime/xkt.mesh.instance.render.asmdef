@@ -1,0 +1,22 @@
+{
+    "name": "xkt.mesh.instance.render",
+    "rootNamespace": "",
+    "references": [
+        "GameCore",
+        "GameModules",
+        "game.common.basic",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.RenderPipelines.Core.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

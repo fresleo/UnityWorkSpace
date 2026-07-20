@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27aaaa18af184ca2b589fc5487b6d61d, type: 3}
+  m_Name: RaindropRendererData
+  m_EditorClassIdentifier: 
+  renderResources:
+    raindropMaterial: {fileID: 2100000, guid: 928366a4562273942b536c56ed4041a5, type: 2}
+    dropletShader: {fileID: 4800000, guid: 7ac9d41e60cff824c8e7806f57675f5a, type: 3}
+    raindropEffectShader: {fileID: 4800000, guid: 3edef7c1429c1d5499a278cb6d1d40be,
+      type: 3}

@@ -1,0 +1,18 @@
+{
+    "name": "XKnight.LOD.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:d37db29f8baa6d440a3198d2596419ad"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

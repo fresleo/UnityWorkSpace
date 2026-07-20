@@ -1,0 +1,7 @@
+{
+  "name": "skinned-decal",
+  "displayName": "Skinned Decal",
+  "description": "蒙皮贴花，为了支持在蒙皮渲染器上绘制伤痕效果",
+  "version": "0.0.1",
+  "unity": "2022.3"
+}

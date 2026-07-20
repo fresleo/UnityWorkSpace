@@ -1,0 +1,16 @@
+{
+    "name": "XKnight.Asset.Runtime",
+    "rootNamespace": "",
+    "references": [
+        "XEngine.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

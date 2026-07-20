@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: b9c33f7b4f0c1314b8a8d6c11d4f8c08
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - daySkyProfile: {instanceID: 0}
+  - nightSkyProfile: {instanceID: 0}
+  - cloudProfile: {instanceID: 0}
+  - timeProfile: {instanceID: 0}
+  - TransmittanceLUT: {instanceID: 0}
+  - InscatterLUT: {instanceID: 0}
+  - daySkyProfileMap: {instanceID: 0}
+  - nightSkyProfileMap: {instanceID: 0}
+  - cloudProfileMap: {instanceID: 0}
+  - PrecomputeShader: {fileID: 4800000, guid: 2a1b568fb9fa24acdb5e3d4a27ad4ddb, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

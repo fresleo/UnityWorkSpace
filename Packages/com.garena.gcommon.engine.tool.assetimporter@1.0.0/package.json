@@ -1,0 +1,30 @@
+{
+    "name": "com.garena.gcommon.engine.tool.assetimporter",
+    "version": "1.0.0",
+    "displayName": "Asset Importer With Rules",
+    "description": "A Unity editor tool to check and automatically fix import settings for textures, models, and audio based on XML rules.",
+    "unity": "2022.3",
+    "author": {
+        "name": "enbao.ma",
+        "email": "enbao.ma@garena.com",
+        "url": "https://www.garena.com"
+    },
+    "keywords": [
+        "asset",
+        "import",
+        "editor",
+        "tool",
+        "texture",
+        "model",
+        "audio"
+    ],
+    "category": "Editor",
+    "dependencies": {},
+    "samples": [
+        {
+            "displayName": "Asset Importer With Rules",
+            "description": "Example XML rules for customizing asset import settings.",
+            "path": "Samples~/ImporterRule"
+        }
+    ]
+}

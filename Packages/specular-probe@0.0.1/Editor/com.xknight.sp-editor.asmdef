@@ -1,0 +1,18 @@
+{
+    "name": "com.xknight.sp-editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:ecec9f1b0c7af954cac6201dd9f6edb3"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

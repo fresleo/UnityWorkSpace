@@ -1,0 +1,236 @@
+//date : 2026/6/9
+//author : Calvin
+//description: sss散射
+//这里指定平台：
+// #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
+
+
+#pragma kernel XKNightSubsurfaceScattering
+
+
+#include "./Libs/SubsurfaceScattering.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceFillingCurves.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/API/D3D11.hlsl"
+RW_TEXTURE2D(float4, _SubsurfaceLightingIrradiance);
+
+void StoreResult(uint2 pixelCoord, float3 irradiance)
+{
+    _SubsurfaceLightingIrradiance[pixelCoord] = float4(irradiance, 1); 
+}
+
+[numthreads(GROUP_SIZE_2D, 1, 1)]
+void XKNightSubsurfaceScattering(uint3 groupId : SV_GroupID, //打包数
+                                 uint groupThreadId : SV_GroupThreadID, //管道数
+                                 uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    //---------------------------屏幕分布点(morton z-order)----------------------------------
+    groupThreadId &= GROUP_SIZE_2D - 1;
+
+    uint waveIndex = WaveReadLaneFirst(groupThreadId / 64); //强制这个值在整个 wave 内统一
+    uint laneIndex = groupThreadId % 64; // 线程在当前 wave 中的编号
+    uint quadIndex = laneIndex / 4;
+
+    //ps:由于morton将像素块变成了16*16的一个个小块，小块中又有16个（小小块）
+    //所以总数为(groupId.xy * GROUP_SIZE_1D+groupOffset)
+    uint2 groupCoord = DecodeMorton2D(groupThreadId); //morton，x:16×y:16
+    uint2 groupOffset = groupId.xy * GROUP_SIZE_1D; //上一个包的tile的总像素
+
+    //加上小小块的索引
+    uint2 pixelCoord = groupOffset + groupCoord;
+    //屏幕像素空间，全局坐标，如果要求的缓存坐标，那么就可以用pixelCoord - cacheOffset = cachepixel
+    int2 cacheOffset = (int2)groupOffset - TEXTURE_CACHE_BORDER; 
+
+    //当线程按照morton排布之后，采样一张图片回合mortonid排布一致
+    int2 sCoord = clamp((int2)pixelCoord, 0, (int2)_ScreenSize.xy - 1);
+    float4 centerSample = LOAD_TEXTURE2D_X(_SSSDiffuse, sCoord);
+    float3 centerIrradiance = centerSample.rgb;
+
+    float centerShadow = centerSample.a;
+
+    float centerDepth = 0;
+
+
+    bool passedStencilTest = TestLightingForSSS(centerIrradiance);
+    if (passedStencilTest) //判断是否需要加载深度
+    {
+        //设备深度是反向的，越远的物体深度值越大，近处物体深度值越小。Unity深度值经过非线性变换，不能直接使用，需要线性化处理。
+        centerDepth = LoadSceneDepth(sCoord);
+    }
+
+    //----------------------------------------缓存像素点----------------------------------------------
+
+    uint2 cacheCoord = groupCoord + TEXTURE_CACHE_BORDER;
+
+    StoreSampleToCacheMemory(float4(centerIrradiance, centerDepth), cacheCoord); //存入2-17(groupID)下角标的值
+
+    uint numBorderQuadsPerWave = TEXTURE_CACHE_SIZE_1D / 2 - 1; //计算每个 wave 要负责加载的边界 quad 数量 - 9
+    uint halfCacheWidthInQuads = TEXTURE_CACHE_SIZE_1D / 4; // 需要的quad数量
+    /*ps 注释点:
+     groupThreadId  0– 3   → laneIndex  0– 3  → quadIndex 0
+     groupThreadId  4– 7   → laneIndex  4– 7  → quadIndex 1
+     groupThreadId  0– 3   → laneIndex  0– 3  → quadIndex 0
+     groupThreadId  4– 7   → laneIndex  4– 7  → quadIndex 1
+     groupThreadId  8–11   → laneIndex  8–11  → quadIndex 2
+     groupThreadId 12–15   → laneIndex 12–15  → quadIndex 3
+     groupThreadId 16–19   → laneIndex 16–19  → quadIndex 4
+     groupThreadId 20–23   → laneIndex 20–23  → quadIndex 5
+     groupThreadId 24–27   → laneIndex 24–27  → quadIndex 6
+     groupThreadId 28–31   → laneIndex 28–31  → quadIndex 7
+     groupThreadId 32–35   → laneIndex 32–35  → quadIndex 8
+    */
+    if (quadIndex < numBorderQuadsPerWave) //取9个quader(边界)进行内存拓展
+    {
+        //DeinterleaveQuad:将自然数分成2维坐标(0，0)，(1，0)，(0，1)，(1，1)
+        uint2 startQuad = halfCacheWidthInQuads * DeinterleaveQuad(waveIndex);
+        uint2 quadCoord;
+        switch (waveIndex)
+        {
+        case 0:
+            quadCoord.x = max(0, (int)(quadIndex - (halfCacheWidthInQuads - 1)));
+            quadCoord.y = max(0, (int)((halfCacheWidthInQuads - 1) - quadIndex));
+            break;
+        case 1:
+            quadCoord.x = min(quadIndex, halfCacheWidthInQuads - 1);
+            quadCoord.y = max(0, (int)(quadIndex - (halfCacheWidthInQuads - 1)));
+            break;
+        case 2:
+            quadCoord.x = max(0, (int)(quadIndex - (halfCacheWidthInQuads - 1)));
+            quadCoord.y = min(quadIndex, halfCacheWidthInQuads - 1);
+            break;
+        default:
+            quadCoord.x = min(quadIndex, halfCacheWidthInQuads - 1);
+            quadCoord.y = min(halfCacheWidthInQuads - 1, 2 * (halfCacheWidthInQuads - 1) - quadIndex);
+            break;
+        }
+        /*
+           quadIndex 0 → 基点(0,8):
+           laneIndex  0 → (0,0) → cacheCoord2 (0,8)
+           laneIndex  1 → (1,0) → cacheCoord2 (1,8)
+           laneIndex  2 → (0,1) → cacheCoord2 (0,9)
+           laneIndex  3 → (1,1) → cacheCoord2 (1,9)
+        
+         quadIndex 1 → 基点(0,6):
+           laneIndex  4 → (0,0) → cacheCoord2 (0,6)
+           laneIndex  5 → (1,0) → cacheCoord2 (1,6)
+           laneIndex  6 → (0,1) → cacheCoord2 (0,7)
+           laneIndex  7 → (1,1) → cacheCoord2 (1,7)
+        
+         quadIndex 2 → 基点(0,4):
+           laneIndex  8 → (0,0) → cacheCoord2 (0,4)
+           laneIndex  9 → (1,0) → cacheCoord2 (1,4)
+           laneIndex 10 → (0,1) → cacheCoord2 (0,5)
+           laneIndex 11 → (1,1) → cacheCoord2 (1,5)
+        
+         quadIndex 3 → 基点(0,2):
+           laneIndex 12 → (0,0) → cacheCoord2 (0,2)
+           laneIndex 13 → (1,0) → cacheCoord2 (1,2)
+           laneIndex 14 → (0,1) → cacheCoord2 (0,3)
+           laneIndex 15 → (1,1) → cacheCoord2 (1,3)
+        
+         quadIndex 4 → 基点(0,0):  ← 转角
+           laneIndex 16 → (0,0) → cacheCoord2 (0,0)
+           laneIndex 17 → (1,0) → cacheCoord2 (1,0)
+           laneIndex 18 → (0,1) → cacheCoord2 (0,1)
+           laneIndex 19 → (1,1) → cacheCoord2 (1,1)
+        */
+
+        uint2 cacheCoord2 = 2 * (startQuad + quadCoord) + DeinterleaveQuad(laneIndex);
+        //这里获取边界pixel
+        int2 pixelCoord2 = (int2)(groupOffset + cacheCoord2) - TEXTURE_CACHE_BORDER;
+        int2 s2 = clamp(pixelCoord2, 0, (int2)_ScreenSize.xy - 1);
+        //获取偏移的像素rgb
+        float3 irradiance2 = LOAD_TEXTURE2D_X(_SSSDiffuse, s2).rgb;
+        float depth2 = 0;
+
+        if (TestLightingForSSS(irradiance2))
+        {
+            depth2 = LoadSceneDepth(s2);
+        }
+        //将边界点存入
+        StoreSampleToCacheMemory(float4(irradiance2, depth2), cacheCoord2);
+    }
+    GroupMemoryBarrierWithGroupSync();
+
+    //如果没有光照，直接返回
+    if (!passedStencilTest)
+    {
+        StoreResult(pixelCoord, float3(0, 0, 0));
+        return;
+    }
+    PositionInputs posInput = GetPositionInput(pixelCoord, _ScreenSize.zw);
+    uint MaterialID = 0;
+    
+    float4 albedo = float4(0, 0, 0, 0) ;
+    real DiffuseMask = 0;
+    DecodeFromSSSBuffer(posInput.positionSS, albedo, MaterialID,DiffuseMask);
+    if (DiffuseMask <= 0)
+    {
+        StoreResult(pixelCoord, albedo * centerIrradiance);
+        return ;
+    }
+    float3 S = _ShapeParamsAndFreePath[MaterialID].xyz;
+    float d = _ShapeParamsAndFreePath[MaterialID].w;
+    float metersPerUnit = _WorldScaleAndMaxRadiusAndThicknessRemaps[MaterialID].x;
+    float filterRadius = _WorldScaleAndMaxRadiusAndThicknessRemaps[MaterialID].y;
+    float ShadowStrenthen = asfloat(_HashAndShadowStrenthAndThicknessOffset[MaterialID].y);
+    float2 centerPosNDC = posInput.positionNDC;
+
+    float2 cornerPosNDC = centerPosNDC + 0.5 * _ScreenSize.zw;
+
+    //把一个屏幕空间点（NDC 坐标 + 深度值）还原成相机空间（View Space）的 3D 坐标
+    float3 centerPosVS = ComputeViewSpacePosition(centerPosNDC, centerDepth, _InvProjMatrix);
+    float3 cornerPosVS = ComputeViewSpacePosition(cornerPosNDC, centerDepth, _InvProjMatrix);
+
+    float mmPerUnit = MILLIMETERS_PER_METER * metersPerUnit;
+    float unitsPerMm = rcp(mmPerUnit); //sss的毫米数
+
+    // 投影矩阵的透视特性（远处数值大，近处数值小）
+    float unitsPerPixel = max(0.0001f, 2 * abs(cornerPosVS.x - centerPosVS.x)); //毫米数，单位units/pixel
+    //    单位：pixel/mm    单位：pixel/units  单位: units / mm     ：一毫米对应多少像素（远处数值小，近处数值大）
+    float pixelsPerMm = rcp(unitsPerPixel) * unitsPerMm;
+
+    // filterRadius是散射半径（mm单位）转换成像素单位（像素半径）
+    float filterArea = PI * Sq(filterRadius * pixelsPerMm);
+    uint sampleCount = (uint)(filterArea * rcp(SSS_PIXELS_PER_SAMPLE));
+    
+
+
+    //什么情况下 sampleCount < 1
+    //1：filterArea 很小  →  散射圆覆盖像素数极少 ，说明这个像素的散射半径在屏幕上小于1个像素
+    //2：物体离摄像机很远  →  pixelsPerMm 很小  →  散射圆退化成不足1像素
+    //优化
+    if (sampleCount < 1)
+    {
+        StoreResult(pixelCoord, albedo * centerIrradiance);
+        return;
+    }
+
+    float phase = TWO_PI * GenerateHashedRandomFloat(uint3(pixelCoord, (uint)(centerDepth * 16777216)));
+
+    uint n = min(sampleCount, _SssSampleBudget);
+
+    float3 totalIrradiance = 0;
+    float3 totalWeight = 0;
+
+    //把非线性设备深度转换成视空间线性深度，单位是 Unity 场景单位，离相机的距离
+    float linearDepth = LinearEyeDepth(centerDepth, _ZBufferParams);
+
+    for (uint i = 0; i < n; i++)
+    {
+        EvaluateSample(i, n, pixelCoord,
+                       cacheOffset, S, d,
+                       mmPerUnit, pixelsPerMm, phase,
+                       totalIrradiance, totalWeight, linearDepth);
+    }
+
+
+    totalWeight = max(totalWeight, FLT_MIN);
+
+    //====================Shadow============
+    float3 scattered = totalIrradiance / totalWeight;
+    scattered *= 1 + centerShadow * ShadowStrenthen;
+    //==================shadow end=========
+
+    StoreResult(pixelCoord, albedo * albedo * scattered);
+}

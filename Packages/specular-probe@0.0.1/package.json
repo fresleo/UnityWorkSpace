@@ -1,0 +1,7 @@
+{
+  "name": "specular-probe",
+  "displayName": "SpecularProbe",
+  "description": "高光探针",
+  "version": "0.0.1",
+  "unity": "2022.3"
+}

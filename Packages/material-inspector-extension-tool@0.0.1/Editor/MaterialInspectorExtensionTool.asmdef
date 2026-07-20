@@ -1,0 +1,25 @@
+{
+    "name": "MaterialInspectorExtensionTool",
+    "rootNamespace": "",
+    "references": [
+        "LWGUI",
+        "Unity.RenderPipelines.Core.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.jasonma.lwgui",
+            "expression": "",
+            "define": "LWGUI_EXIST"
+        }
+    ],
+    "noEngineReferences": false
+}

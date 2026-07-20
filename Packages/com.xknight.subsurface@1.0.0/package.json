@@ -1,0 +1,21 @@
+{
+  "name": "com.xknight.subsurface",
+  "version": "1.0.0",
+  "displayName": "SubsurfaceScaterring",
+  "description": "Subsurface Scattering shader package for XKnight.",
+  "unity": "2022.3",
+  "keywords": [
+    "utility",
+    "tools"
+  ],
+  "author": {
+    "name": "TA.calvin",
+    "email": "fresleo777@gmail.com"
+  },
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "14.0.11",
+    "com.unity.mathematics": "1.2.6",
+    "com.unity.collections": "1.2.4",
+    "com.unity.burst": "1.8.17"
+  }
+}

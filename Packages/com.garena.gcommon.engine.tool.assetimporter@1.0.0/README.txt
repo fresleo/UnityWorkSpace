@@ -1,0 +1,4 @@
+工具使用注意事项:
+第一次使用工具的时候，请打开Tools/GarenaAssetImporterTool/ 会在Assets/Editor/ImporterRule/ 下分别产生AssetImportSettings.asset和Importer.xml文件。
+AssetImportSettings.asset文件的Enable_Assetimporter选项是工具开关
+Importer.xml是配置的资源压缩规则，需要项目根据需求修改。Importer.xml里面有部分注释可以参考。

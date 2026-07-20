@@ -1,0 +1,7 @@
+{
+    "name": "xkt.pie",
+    "displayName": "Unity Pie",
+    "version": "0.1.0",
+    "description": "在 Unity 中，使用 Pie 式菜单",
+    "unity": "2019.4"
+}

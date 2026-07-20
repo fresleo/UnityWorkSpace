@@ -1,0 +1,9 @@
+{
+  "name": "t4m",
+  "description": "T4M",
+  "version": "0.0.1",
+  "displayName": "T4M",
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "12.1.6"
+  }
+}

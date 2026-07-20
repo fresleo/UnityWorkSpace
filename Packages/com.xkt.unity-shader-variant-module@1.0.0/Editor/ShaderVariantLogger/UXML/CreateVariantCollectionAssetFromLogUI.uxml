@@ -1,0 +1,23 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="CreateAsset" style="flex-shrink: 0;">
+        <ui:Label text="从日志创建 ShaderVariantCollection" display-tooltip-when-elided="true" />
+        <uie:ObjectField label="ShaderVariantCollection" name="TargetAsset" style="margin-left: 15px;" />
+        <ui:Button text="清理变体集合" name="ClearExec" display-tooltip-when-elided="true" style="margin-left: 15px; margin-right: 15px;" />
+        <ui:Foldout text="着色器路径配置（高级）" value="true" style="margin-left: 15px;">
+            <ui:Toggle label="Assets/**" name="IncludeAssets" />
+            <ui:Toggle label="Packages/**" name="IncludePackages" />
+            <ui:Toggle label="unity_builtin" name="IncludeUnityBuiltIn" />
+            <ui:Toggle label="unity_builtin_extra" name="IncludeUnityBuiltinExtra" />
+            <ui:Toggle label="others..." name="IncludeOthers" />
+        </ui:Foldout>
+        <ui:Button text="根据日志往集合中添加变体" name="AddExec" display-tooltip-when-elided="true" style="margin-left: 15px; margin-right: 15px;" />
+    </ui:VisualElement>
+    <ui:VisualElement style="height: 10px; flex-shrink: 0;" />
+    <ui:VisualElement name="LogArea" style="flex-shrink: 0;">
+        <ui:VisualElement style="flex-wrap: nowrap; flex-direction: row; justify-content: space-between;">
+            <ui:Label text="日志" display-tooltip-when-elided="true" />
+            <ui:Button text="打开目录" name="OpenDir" display-tooltip-when-elided="true" style="align-items: auto; justify-content: flex-start; flex-direction: row; flex-wrap: nowrap;" />
+        </ui:VisualElement>
+        <ui:ScrollView name="LogList" style="margin-left: 20px;" />
+    </ui:VisualElement>
+</ui:UXML>

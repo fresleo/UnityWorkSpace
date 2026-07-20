@@ -1,0 +1,18 @@
+{
+    "name": "XknightScatteringEditor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:147b63b6521fa054f9990a3e6b705bfe",
+        "GUID:c579267770062bf448e75eb160330b7f",
+        "GUID:15fc0a57446b3144c949da3e2b9737a9"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

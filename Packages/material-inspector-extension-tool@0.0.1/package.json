@@ -1,0 +1,7 @@
+{
+  "name": "material-inspector-extension-tool",
+  "description": "材质球检查菜单扩展工具",
+  "version": "0.0.1",
+  "unity": "2022.3",
+  "displayName": "Material Inspector Extension Tool"
+}

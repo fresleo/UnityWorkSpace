@@ -1,0 +1,7 @@
+{
+  "name": "com.xknight.ahd-baker",
+  "displayName": "XKT AHD Baker",
+  "description": "XKT AHD CPU BVH baker.",
+  "version": "0.0.1",
+  "unity": "2022.3"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "air-sticker",
+  "displayName": "Air Sticker",
+  "description": "空气贴纸，当前用于静态网格贴花，后期应该会和角色的蒙皮贴花整合到一起",
+  "version": "0.0.1"
+}

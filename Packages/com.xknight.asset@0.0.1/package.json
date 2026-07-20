@@ -1,0 +1,9 @@
+{
+  "name": "com.xknight.asset",
+  "description": "asset manager",
+  "version": "0.0.1",
+  "unity": "2021.3",
+  "displayName": "XKAsset",
+  "dependencies": {
+  }
+}
